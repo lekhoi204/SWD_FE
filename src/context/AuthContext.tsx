@@ -1,7 +1,15 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
-import type { User } from '@/types';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  type ReactNode,
+  useEffect,
+} from "react";
+import type { User } from "@/types";
+import { loginApi, registerApi, logoutApi, getMeApi } from "@/api/auth";
 
-type AuthModal = 'login' | 'register' | null;
+type AuthModal = "login" | "register" | null;
 
 type AuthContextValue = {
   user: User | null;
@@ -21,32 +29,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authModal, setAuthModal] = useState<AuthModal>(null);
 
-  const openLogin = useCallback(() => setAuthModal('login'), []);
-  const openRegister = useCallback(() => setAuthModal('register'), []);
+  const openLogin = useCallback(() => setAuthModal("login"), []);
+  const openRegister = useCallback(() => setAuthModal("register"), []);
   const closeModal = useCallback(() => setAuthModal(null), []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    // TODO: gọi loginApi({ email, password }) từ @/api khi backend sẵn sàng
-    // const res = await loginApi({ email, password });
-    // setUser(res.user);
-    // setAuthModal(null);
-    // return true;
-    return false;
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string): Promise<boolean> => {
+      try {
+        const res = await loginApi({ email, password });
+        setUser(res.user);
+        setAuthModal(null);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    },
+    [],
+  );
 
-  const register = useCallback(async (name: string, email: string, password: string): Promise<boolean> => {
-    // TODO: gọi registerApi({ name, email, password }) từ @/api khi backend sẵn sàng
-    // const res = await registerApi({ name, email, password });
-    // setUser(res.user);
-    // setAuthModal(null);
-    // return true;
-    return false;
-  }, []);
+  const register = useCallback(
+    async (name: string, email: string, password: string): Promise<boolean> => {
+      try {
+        const res = await registerApi({ name, email, password });
+        setUser(res.user);
+        setAuthModal(null);
+        return true;
+      } catch (err) {
+        return false;
+      }
+    },
+    [],
+  );
 
-  const logout = useCallback(() => {
-    // TODO: gọi logoutApi() từ @/api khi backend sẵn sàng
-    // await logoutApi();
+  const logout = useCallback(async () => {
+    try {
+      await logoutApi();
+    } catch (err) {
+      // ignore
+    }
     setUser(null);
+  }, []);
+
+  // try to restore session if token exists
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const me = await getMeApi();
+        if (mounted) setUser(me);
+      } catch (err) {
+        // no-op
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -70,6 +107,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }

@@ -1,41 +1,72 @@
-import { useState, useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { Filter, Grid, List } from 'lucide-react';
-import { useTheme } from '@/context/ThemeContext';
-import { useCart } from '@/context/CartContext';
-import { products } from '@/data/products';
-import { CATEGORY_LABELS } from '@/constants/categories';
-import type { Product } from '@/types';
+import { useState, useMemo, useEffect } from "react";
+import { Link, useParams } from "react-router-dom";
+import { Filter, Grid, List } from "lucide-react";
+import { useTheme } from "@/context/ThemeContext";
+import { useCart } from "@/context/CartContext";
+import { getProductsApi } from "@/api/products";
+import { CATEGORY_LABELS } from "@/constants/categories";
+import type { Product } from "@/types";
 
 export function ProductListPage() {
   const { category: categoryParam } = useParams<{ category?: string }>();
-  const category = categoryParam ?? 'all';
+  const category = categoryParam ?? "all";
   const { isDark } = useTheme();
   const { addToCart } = useCart();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'default' | 'price-asc' | 'price-desc' | 'name'>('default');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000000]);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [sortBy, setSortBy] = useState<
+    "default" | "price-asc" | "price-desc" | "name"
+  >("default");
+  const [priceRange, setPriceRange] = useState<[number, number]>([
+    0, 100000000,
+  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const data = await getProductsApi();
+        if (mounted) {
+          setProducts(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const filteredProducts = useMemo(() => {
-    let filtered = category === 'all' ? products : products.filter((p) => p.category === category);
-    filtered = filtered.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1]);
+    let filtered =
+      category === "all"
+        ? products
+        : products.filter((p) => p.category === category);
+    filtered = filtered.filter(
+      (p) => p.price >= priceRange[0] && p.price <= priceRange[1],
+    );
     switch (sortBy) {
-      case 'price-asc':
+      case "price-asc":
         filtered = [...filtered].sort((a, b) => a.price - b.price);
         break;
-      case 'price-desc':
+      case "price-desc":
         filtered = [...filtered].sort((a, b) => b.price - a.price);
         break;
-      case 'name':
+      case "name":
         filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
         break;
     }
     return filtered;
-  }, [category, sortBy, priceRange]);
+  }, [category, sortBy, priceRange, products]);
 
-  const categoryName = CATEGORY_LABELS[category] ?? 'Sản phẩm';
+  const categoryName = CATEGORY_LABELS[category] ?? "Sản phẩm";
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -43,7 +74,7 @@ export function ProductListPage() {
         <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
           {categoryName}
         </h1>
-        <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>
+        <p className={isDark ? "text-gray-400" : "text-gray-600"}>
           Tìm thấy {filteredProducts.length} sản phẩm
         </p>
       </div>
@@ -51,20 +82,22 @@ export function ProductListPage() {
       <div
         className={`mb-8 backdrop-blur-sm rounded-xl p-4 ${
           isDark
-            ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30'
-            : 'bg-white/80 border border-purple-300 shadow-lg'
+            ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30"
+            : "bg-white/80 border border-purple-300 shadow-lg"
         }`}
       >
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
           <div className="flex items-center gap-4 w-full md:w-auto">
-            <Filter className={`w-5 h-5 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+            <Filter
+              className={`w-5 h-5 ${isDark ? "text-purple-400" : "text-purple-600"}`}
+            />
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
               className={`rounded-lg px-4 py-2 focus:outline-none flex-1 md:flex-initial ${
                 isDark
-                  ? 'bg-slate-900/50 border border-purple-500/30 focus:border-purple-400 text-white'
-                  : 'bg-white border border-purple-300 focus:border-purple-500 text-gray-900'
+                  ? "bg-slate-900/50 border border-purple-500/30 focus:border-purple-400 text-white"
+                  : "bg-white border border-purple-300 focus:border-purple-500 text-gray-900"
               }`}
             >
               <option value="default">Mặc định</option>
@@ -75,29 +108,29 @@ export function ProductListPage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setViewMode('grid')}
+              onClick={() => setViewMode("grid")}
               className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'grid'
+                viewMode === "grid"
                   ? isDark
-                    ? 'bg-purple-500/30 text-purple-400'
-                    : 'bg-purple-200 text-purple-700'
+                    ? "bg-purple-500/30 text-purple-400"
+                    : "bg-purple-200 text-purple-700"
                   : isDark
-                    ? 'text-gray-400 hover:bg-purple-500/20'
-                    : 'text-gray-600 hover:bg-purple-100'
+                    ? "text-gray-400 hover:bg-purple-500/20"
+                    : "text-gray-600 hover:bg-purple-100"
               }`}
             >
               <Grid className="w-5 h-5" />
             </button>
             <button
-              onClick={() => setViewMode('list')}
+              onClick={() => setViewMode("list")}
               className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'list'
+                viewMode === "list"
                   ? isDark
-                    ? 'bg-purple-500/30 text-purple-400'
-                    : 'bg-purple-200 text-purple-700'
+                    ? "bg-purple-500/30 text-purple-400"
+                    : "bg-purple-200 text-purple-700"
                   : isDark
-                    ? 'text-gray-400 hover:bg-purple-500/20'
-                    : 'text-gray-600 hover:bg-purple-100'
+                    ? "text-gray-400 hover:bg-purple-500/20"
+                    : "text-gray-600 hover:bg-purple-100"
               }`}
             >
               <List className="w-5 h-5" />
@@ -106,7 +139,7 @@ export function ProductListPage() {
         </div>
       </div>
 
-      {viewMode === 'grid' ? (
+      {viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
             <ProductCard
@@ -134,7 +167,9 @@ export function ProductListPage() {
 
       {filteredProducts.length === 0 && (
         <div className="text-center py-20">
-          <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p
+            className={`text-lg ${isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             Không tìm thấy sản phẩm nào
           </p>
         </div>
@@ -152,15 +187,15 @@ function ProductCard({
   product: Product;
   isDark: boolean;
   addToCart: (p: Product, q: number) => void;
-  viewMode: 'grid' | 'list';
+  viewMode: "grid" | "list";
 }) {
-  if (viewMode === 'grid') {
+  if (viewMode === "grid") {
     return (
       <div
         className={`backdrop-blur-sm rounded-xl overflow-hidden hover:scale-105 transition-transform cursor-pointer group ${
           isDark
-            ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30'
-            : 'bg-white/90 border border-purple-300 shadow-lg hover:shadow-xl'
+            ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30"
+            : "bg-white/90 border border-purple-300 shadow-lg hover:shadow-xl"
         }`}
       >
         <Link to={`/product/${product.id}`} className="block">
@@ -176,18 +211,20 @@ function ProductCard({
           <Link to={`/product/${product.id}`}>
             <h3
               className={`font-bold mb-2 line-clamp-2 min-h-[3rem] ${
-                isDark ? 'text-white' : 'text-gray-900'
+                isDark ? "text-white" : "text-gray-900"
               }`}
             >
               {product.name}
             </h3>
           </Link>
-          <p className={`text-sm mb-3 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p
+            className={`text-sm mb-3 line-clamp-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             {product.description}
           </p>
           <div className="flex items-center justify-between mb-3">
             <span className="text-xl font-bold text-purple-400">
-              {product.price.toLocaleString('vi-VN')}₫
+              {product.price.toLocaleString("vi-VN")}₫
             </span>
           </div>
           <div className="flex gap-2">
@@ -204,8 +241,8 @@ function ProductCard({
               }}
               className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
                 isDark
-                  ? 'bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white'
-                  : 'bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-700'
+                  ? "bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white"
+                  : "bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-700"
               }`}
             >
               Thêm vào giỏ
@@ -220,12 +257,15 @@ function ProductCard({
     <div
       className={`backdrop-blur-sm rounded-xl overflow-hidden transition-all cursor-pointer group ${
         isDark
-          ? 'bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30 hover:border-purple-400/50'
-          : 'bg-white/90 border border-purple-300 hover:border-purple-400 shadow-lg hover:shadow-xl'
+          ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30 hover:border-purple-400/50"
+          : "bg-white/90 border border-purple-300 hover:border-purple-400 shadow-lg hover:shadow-xl"
       }`}
     >
       <div className="flex flex-col md:flex-row">
-        <Link to={`/product/${product.id}`} className="w-full md:w-64 h-48 md:h-auto overflow-hidden block">
+        <Link
+          to={`/product/${product.id}`}
+          className="w-full md:w-64 h-48 md:h-auto overflow-hidden block"
+        >
           <img
             src={product.image}
             alt={product.name}
@@ -234,11 +274,15 @@ function ProductCard({
         </Link>
         <div className="flex-1 p-6">
           <Link to={`/product/${product.id}`}>
-            <h3 className={`text-xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h3
+              className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
+            >
               {product.name}
             </h3>
           </Link>
-          <p className={`mb-4 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p
+            className={`mb-4 line-clamp-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
             {product.description}
           </p>
           <div className="grid grid-cols-2 gap-2 mb-4">
@@ -246,14 +290,20 @@ function ProductCard({
               .slice(0, 4)
               .map(([key, value]) => (
                 <div key={key} className="text-sm">
-                  <span className={isDark ? 'text-gray-500' : 'text-gray-500'}>{key}:</span>
-                  <span className={`ml-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{value}</span>
+                  <span className={isDark ? "text-gray-500" : "text-gray-500"}>
+                    {key}:
+                  </span>
+                  <span
+                    className={`ml-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                  >
+                    {value}
+                  </span>
                 </div>
               ))}
           </div>
           <div className="flex items-center justify-between">
             <span className="text-2xl font-bold text-purple-400">
-              {product.price.toLocaleString('vi-VN')}₫
+              {product.price.toLocaleString("vi-VN")}₫
             </span>
             <div className="flex gap-2">
               <Link
@@ -266,8 +316,8 @@ function ProductCard({
                 onClick={() => addToCart(product, 1)}
                 className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
                   isDark
-                    ? 'bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white'
-                    : 'bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-700'
+                    ? "bg-white/10 backdrop-blur-sm hover:bg-white/20 border border-white/20 text-white"
+                    : "bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-700"
                 }`}
               >
                 Thêm vào giỏ

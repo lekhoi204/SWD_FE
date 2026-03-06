@@ -1,5 +1,5 @@
-import { apiClient, setToken, clearToken } from './client';
-import type { User } from '@/types';
+import { apiClient, setToken, clearToken } from "./client";
+import type { User } from "@/types";
 
 type LoginRequest = {
   email: string;
@@ -14,32 +14,40 @@ type RegisterRequest = {
 
 type AuthResponse = {
   user: User;
-  token: string;
+  token?: string;
 };
 
 export async function loginApi(data: LoginRequest): Promise<AuthResponse> {
-  const res = await apiClient<AuthResponse>('/auth/login', {
-    method: 'POST',
+  const res = await apiClient<AuthResponse>("/auth/login", {
+    method: "POST",
     body: data,
   });
-  setToken(res.token);
+  if (res.token) setToken(res.token);
   return res;
 }
 
-export async function registerApi(data: RegisterRequest): Promise<AuthResponse> {
-  const res = await apiClient<AuthResponse>('/auth/register', {
-    method: 'POST',
+export async function registerApi(
+  data: RegisterRequest,
+): Promise<AuthResponse> {
+  const res = await apiClient<AuthResponse>("/auth/register", {
+    method: "POST",
     body: data,
   });
-  setToken(res.token);
+  if (res.token) setToken(res.token);
   return res;
 }
 
 export async function logoutApi(): Promise<void> {
-  await apiClient('/auth/logout', { method: 'POST' });
+  // Backend may not implement logout; clear token client-side.
+  try {
+    await apiClient("/auth/logout", { method: "POST" });
+  } catch (err) {
+    // ignore errors (endpoint might not exist)
+  }
   clearToken();
 }
 
 export async function getMeApi(): Promise<User> {
-  return apiClient<User>('/auth/me');
+  // Backend may not implement /auth/me. Let caller handle failures.
+  return apiClient<User>("/auth/me");
 }
