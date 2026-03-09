@@ -32,8 +32,10 @@ export type CartItem = {
 export type ThemeMode = 'dark' | 'light';
 
 export type User = {
-  id: string;
+  user_id: number;
   name: string;
   email: string;
-  avatar?: string;
+  phone?: string;
+  address?: string | null;
+  created_at: string;
 };

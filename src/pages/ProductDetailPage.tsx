@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { products } from '@/data/products';
+import { CATEGORY_LABELS } from '@/constants/categories';
+import { Breadcrumb } from '@/components/Breadcrumb';
 import type { Product } from '@/types';
 
 const PAYMENT_PLANS = [
@@ -37,15 +39,15 @@ export function ProductDetailPage() {
     toast.success(`Đã thêm ${quantity} ${product.name} vào giỏ hàng!`);
   };
 
+  const categoryLabel = CATEGORY_LABELS[product.category] ?? product.category;
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <Link
-        to="/products"
-        className="flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        Quay lại
-      </Link>
+      <Breadcrumb items={[
+        { label: 'Sản phẩm', to: '/products' },
+        { label: categoryLabel, to: `/products/${product.category}` },
+        { label: product.name },
+      ]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 overflow-hidden">

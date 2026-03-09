@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 export function CartPage() {
   const { isDark } = useTheme();
@@ -32,6 +33,7 @@ export function CartPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Breadcrumb items={[{ label: 'Giỏ hàng' }]} />
       <h1 className="text-3xl md:text-4xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
         Giỏ hàng của bạn
       </h1>

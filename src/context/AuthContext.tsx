@@ -1,5 +1,8 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { User } from '@/types';
+import { loginApi, registerApi } from '@/api/auth';
+import { clearToken, setOnUnauthorized } from '@/api/client';
+import { toast } from 'sonner';
 
 type AuthModal = 'login' | 'register' | null;
 
@@ -17,35 +20,75 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function saveUser(user: User) {
+  localStorage.setItem('user', JSON.stringify(user));
+}
+
+function loadUser(): User | null {
+  try {
+    const raw = localStorage.getItem('user');
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function removeUser() {
+  localStorage.removeItem('user');
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authModal, setAuthModal] = useState<AuthModal>(null);
+
+  useEffect(() => {
+    const saved = loadUser();
+    if (saved) setUser(saved);
+
+    setOnUnauthorized(() => {
+      clearToken();
+      removeUser();
+      setUser(null);
+      setAuthModal('login');
+      toast.error('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại');
+    });
+  }, []);
 
   const openLogin = useCallback(() => setAuthModal('login'), []);
   const openRegister = useCallback(() => setAuthModal('register'), []);
   const closeModal = useCallback(() => setAuthModal(null), []);
 
   const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    // TODO: gọi loginApi({ email, password }) từ @/api khi backend sẵn sàng
-    // const res = await loginApi({ email, password });
-    // setUser(res.user);
-    // setAuthModal(null);
-    // return true;
-    return false;
+    try {
+      const res = await loginApi({ email, password });
+      setUser(res.user);
+      saveUser(res.user);
+      setAuthModal(null);
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Đăng nhập thất bại';
+      toast.error(message);
+      return false;
+    }
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string): Promise<boolean> => {
-    // TODO: gọi registerApi({ name, email, password }) từ @/api khi backend sẵn sàng
-    // const res = await registerApi({ name, email, password });
-    // setUser(res.user);
-    // setAuthModal(null);
-    // return true;
-    return false;
+    try {
+      const res = await registerApi({ name, email, password });
+      setUser(res.user);
+      saveUser(res.user);
+      setAuthModal(null);
+      return true;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Đăng ký thất bại';
+      toast.error(message);
+      return false;
+    }
   }, []);
 
   const logout = useCallback(() => {
-    // TODO: gọi logoutApi() từ @/api khi backend sẵn sàng
-    // await logoutApi();
+    clearToken();
+    removeUser();
     setUser(null);
   }, []);
 

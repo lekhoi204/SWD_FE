@@ -7,6 +7,13 @@ type RequestOptions = {
   params?: Record<string, string>;
 };
 
+type OnUnauthorizedCallback = () => void;
+let onUnauthorized: OnUnauthorizedCallback | null = null;
+
+export function setOnUnauthorized(callback: OnUnauthorizedCallback) {
+  onUnauthorized = callback;
+}
+
 function getToken(): string | null {
   return localStorage.getItem('access_token');
 }
@@ -48,6 +55,11 @@ export async function apiClient<T = unknown>(
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => null);
+
+    if (res.status === 401 && token) {
+      onUnauthorized?.();
+    }
+
     throw new ApiError(res.status, errorBody?.message || res.statusText, errorBody);
   }
 

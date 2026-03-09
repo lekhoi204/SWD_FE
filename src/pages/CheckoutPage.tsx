@@ -4,6 +4,7 @@ import { ArrowLeft, Check, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
+import { Breadcrumb } from '@/components/Breadcrumb';
 
 const INSTALLMENT_PLANS = [
   { id: '3-months', name: 'Trả góp 3 tháng', months: 3, interest: 0 },
@@ -88,13 +89,10 @@ export function CheckoutPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Link
-        to="/cart"
-        className="flex items-center gap-2 text-purple-400 hover:text-purple-300 mb-6 transition-colors"
-      >
-        <ArrowLeft className="w-5 h-5" />
-        Quay lại giỏ hàng
-      </Link>
+      <Breadcrumb items={[
+        { label: 'Giỏ hàng', to: '/cart' },
+        { label: 'Thanh toán' },
+      ]} />
 
       <h1 className="text-3xl md:text-4xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
         Thanh toán

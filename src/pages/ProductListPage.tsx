@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { products } from '@/data/products';
 import { CATEGORY_LABELS } from '@/constants/categories';
+import { Breadcrumb } from '@/components/Breadcrumb';
 import type { Product } from '@/types';
 
 export function ProductListPage() {
@@ -37,8 +38,13 @@ export function ProductListPage() {
 
   const categoryName = CATEGORY_LABELS[category] ?? 'Sản phẩm';
 
+  const breadcrumbItems = category === 'all'
+    ? [{ label: 'Sản phẩm' }]
+    : [{ label: 'Sản phẩm', to: '/products' }, { label: categoryName }];
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <Breadcrumb items={breadcrumbItems} />
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
           {categoryName}

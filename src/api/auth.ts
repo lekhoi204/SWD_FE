@@ -35,11 +35,3 @@ export async function registerApi(data: RegisterRequest): Promise<AuthResponse> 
   return res;
 }
 
-export async function logoutApi(): Promise<void> {
-  await apiClient('/auth/logout', { method: 'POST' });
-  clearToken();
-}
-
-export async function getMeApi(): Promise<User> {
-  return apiClient<User>('/auth/me');
-}

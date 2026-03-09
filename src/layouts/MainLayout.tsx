@@ -140,53 +140,76 @@ export function MainLayout() {
                 <div className="relative">
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                      theme.isDark ? 'hover:bg-purple-500/20' : 'hover:bg-purple-200'
+                    className={`flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full transition-all ${
+                      theme.isDark
+                        ? 'hover:bg-purple-500/15 bg-white/5 border border-purple-500/20'
+                        : 'hover:bg-purple-50 bg-gray-50 border border-gray-200'
                     }`}
                   >
-                    <div className="w-7 h-7 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center ring-2 ring-purple-400/30">
+                      <span className="text-white text-sm font-bold">
                         {auth.user?.name?.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    <span className="hidden md:inline text-sm font-semibold max-w-[100px] truncate">
+                    <span className={`hidden md:inline text-sm font-semibold max-w-[140px] truncate ${
+                      theme.isDark ? 'text-white' : 'text-gray-800'
+                    }`}>
                       {auth.user?.name}
                     </span>
-                    <ChevronDown className="w-3.5 h-3.5 hidden md:block" />
+                    <ChevronDown className={`w-3.5 h-3.5 hidden md:block transition-transform ${
+                      userMenuOpen ? 'rotate-180' : ''
+                    } ${theme.isDark ? 'text-gray-400' : 'text-gray-500'}`} />
                   </button>
                   {userMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
                       <div
-                        className={`absolute right-0 mt-2 w-56 rounded-xl overflow-hidden shadow-xl z-50 border ${
+                        className={`absolute right-0 mt-3 w-64 rounded-2xl overflow-hidden shadow-2xl z-50 border ${
                           theme.isDark
-                            ? 'bg-slate-900 border-purple-500/30'
-                            : 'bg-white border-purple-200'
+                            ? 'bg-slate-900/95 border-purple-500/25 backdrop-blur-xl'
+                            : 'bg-white border-gray-200'
                         }`}
+                        style={{
+                          animation: 'dropdownIn 0.15s ease-out',
+                        }}
                       >
-                        <div className={`px-4 py-3 border-b ${theme.isDark ? 'border-purple-500/20' : 'border-gray-100'}`}>
-                          <p className={`font-semibold text-sm ${theme.isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {auth.user?.name}
-                          </p>
-                          <p className={`text-xs truncate ${theme.isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {auth.user?.email}
-                          </p>
+                        <div className={`px-4 py-4 border-b ${theme.isDark ? 'border-purple-500/15' : 'border-gray-100'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-purple-400/20">
+                              <span className="text-white text-base font-bold">
+                                {auth.user?.name?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className={`font-bold text-sm truncate ${theme.isDark ? 'text-white' : 'text-gray-900'}`}>
+                                {auth.user?.name}
+                              </p>
+                              <p className={`text-xs truncate mt-0.5 ${theme.isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                                {auth.user?.email}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => {
-                            auth.logout();
-                            setUserMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                            theme.isDark
-                              ? 'text-red-400 hover:bg-red-500/10'
-                              : 'text-red-500 hover:bg-red-50'
-                          }`}
-                        >
-                          <LogOut className="w-4 h-4" />
-                          Đăng xuất
-                        </button>
+                        <div className="p-1.5">
+                          <button
+                            onClick={() => {
+                              auth.logout();
+                              setUserMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition-colors ${
+                              theme.isDark
+                                ? 'text-red-400 hover:bg-red-500/10'
+                                : 'text-red-500 hover:bg-red-50'
+                            }`}
+                          >
+                            <LogOut className="w-4 h-4" />
+                            Đăng xuất
+                          </button>
+                        </div>
                       </div>
+                      <style>{`
+                        @keyframes dropdownIn { from { opacity: 0; transform: translateY(-8px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+                      `}</style>
                     </>
                   )}
                 </div>

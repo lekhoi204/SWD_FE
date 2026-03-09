@@ -5,6 +5,7 @@ import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { products } from '@/data/products';
 import { PC_BUILDER_CATEGORIES, PC_BUILDER_LABELS } from '@/constants/categories';
+import { Breadcrumb } from '@/components/Breadcrumb';
 import type { Product } from '@/types';
 
 type BuildComponent = {
@@ -90,6 +91,7 @@ export function PCBuilderPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Breadcrumb items={[{ label: 'Build PC' }]} />
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
           Build PC theo ý muốn
