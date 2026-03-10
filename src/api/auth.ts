@@ -18,19 +18,19 @@ type AuthResponse = {
 };
 
 export async function loginApi(data: LoginRequest): Promise<AuthResponse> {
-  const res = await apiClient<AuthResponse>("/auth/login", {
-    method: "POST",
+  clearToken();
+  const res = await apiClient<AuthResponse>('/auth/login', {
+    method: 'POST',
     body: data,
   });
   if (res.token) setToken(res.token);
   return res;
 }
 
-export async function registerApi(
-  data: RegisterRequest,
-): Promise<AuthResponse> {
-  const res = await apiClient<AuthResponse>("/auth/register", {
-    method: "POST",
+export async function registerApi(data: RegisterRequest): Promise<AuthResponse> {
+  clearToken();
+  const res = await apiClient<AuthResponse>('/auth/register', {
+    method: 'POST',
     body: data,
   });
   if (res.token) setToken(res.token);
