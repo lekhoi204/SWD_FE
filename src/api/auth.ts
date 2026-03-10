@@ -18,6 +18,7 @@ type AuthResponse = {
 };
 
 export async function loginApi(data: LoginRequest): Promise<AuthResponse> {
+  clearToken();
   const res = await apiClient<AuthResponse>('/auth/login', {
     method: 'POST',
     body: data,
@@ -27,6 +28,7 @@ export async function loginApi(data: LoginRequest): Promise<AuthResponse> {
 }
 
 export async function registerApi(data: RegisterRequest): Promise<AuthResponse> {
+  clearToken();
   const res = await apiClient<AuthResponse>('/auth/register', {
     method: 'POST',
     body: data,
