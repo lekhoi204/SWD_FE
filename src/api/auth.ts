@@ -1,5 +1,5 @@
-import { apiClient, setToken, clearToken } from './client';
-import type { User } from '@/types';
+import { apiClient, setToken, clearToken } from "./client";
+import type { User } from "@/types";
 
 type LoginRequest = {
   email: string;
@@ -14,7 +14,7 @@ type RegisterRequest = {
 
 type AuthResponse = {
   user: User;
-  token: string;
+  token?: string;
 };
 
 export async function loginApi(data: LoginRequest): Promise<AuthResponse> {
@@ -23,7 +23,7 @@ export async function loginApi(data: LoginRequest): Promise<AuthResponse> {
     method: 'POST',
     body: data,
   });
-  setToken(res.token);
+  if (res.token) setToken(res.token);
   return res;
 }
 
@@ -33,7 +33,7 @@ export async function registerApi(data: RegisterRequest): Promise<AuthResponse> 
     method: 'POST',
     body: data,
   });
-  setToken(res.token);
+  if (res.token) setToken(res.token);
   return res;
 }
 

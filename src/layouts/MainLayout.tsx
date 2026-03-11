@@ -1,11 +1,21 @@
-import { useState } from 'react';
-import { Link, Outlet } from 'react-router-dom';
-import { ShoppingCart, Cpu, Menu, X, Star, Sun, Moon, User, LogOut, ChevronDown } from 'lucide-react';
-import { useCart } from '@/context/CartContext';
-import { useTheme } from '@/context/ThemeContext';
-import { useAuth } from '@/context/AuthContext';
-import { Toaster } from '@/components/Toaster';
-import { AuthModal } from '@/components/AuthModal';
+import { useState } from "react";
+import { Link, Outlet } from "react-router-dom";
+import {
+  ShoppingCart,
+  Cpu,
+  Menu,
+  X,
+  Star,
+  Sun,
+  Moon,
+  LogOut,
+  ChevronDown,
+} from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
+import { Toaster } from "@/components/Toaster";
+import { AuthModal } from "@/components/AuthModal";
 
 export function MainLayout() {
   const theme = useTheme();
@@ -17,7 +27,7 @@ export function MainLayout() {
   return (
     <div
       className={`min-h-screen relative overflow-hidden ${
-        theme.isDark ? 'text-white' : 'text-slate-900'
+        theme.isDark ? "text-white" : "text-slate-900"
       }`}
     >
       <Toaster />
@@ -28,15 +38,15 @@ export function MainLayout() {
           className="absolute inset-0 bg-cover bg-center bg-fixed"
           style={{
             backgroundImage: theme.isDark
-              ? 'url(https://images.unsplash.com/photo-1562619425-c307bb83bc42?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcGFjZSUyMGdhbGF4eSUyMG5lYnVsYSUyMGRhcmt8ZW58MXx8fHwxNzY4NTA3ODUzfDA&ixlib=rb-4.1.0&q=80&w=1080)'
-              : 'url(https://images.unsplash.com/photo-1762951566493-a275fc9f9f48?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob2xvZ3JhcGhpYyUyMGlyaWRlc2NlbnQlMjBncmFkaWVudHxlbnwxfHx8fDE3Njg1MzYzMjJ8MA&ixlib=rb-4.1.0&q=80&w=1080)',
+              ? "url(https://images.unsplash.com/photo-1562619425-c307bb83bc42?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzcGFjZSUyMGdhbGF4eSUyMG5lYnVsYSUyMGRhcmt8ZW58MXx8fHwxNzY4NTA3ODUzfDA&ixlib=rb-4.1.0&q=80&w=1080)"
+              : "url(https://images.unsplash.com/photo-1762951566493-a275fc9f9f48?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxob2xvZ3JhcGhpYyUyMGlyaWRlc2NlbnQlMjBncmFkaWVudHxlbnwxfHx8fDE3Njg1MzYzMjJ8MA&ixlib=rb-4.1.0&q=80&w=1080)",
           }}
         />
         <div
           className={`absolute inset-0 ${
             theme.isDark
-              ? 'bg-gradient-to-b from-slate-950/80 via-purple-950/70 to-slate-950/80'
-              : 'bg-gradient-to-b from-white/80 via-purple-50/80 to-pink-50/80'
+              ? "bg-gradient-to-b from-slate-950/80 via-purple-950/70 to-slate-950/80"
+              : "bg-gradient-to-b from-white/80 via-purple-50/80 to-pink-50/80"
           }`}
         />
       </div>
@@ -46,14 +56,14 @@ export function MainLayout() {
         <div
           className={`absolute inset-0 ${
             theme.isDark
-              ? 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent'
-              : 'bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-200/40 via-transparent to-transparent'
+              ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-transparent to-transparent"
+              : "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-200/40 via-transparent to-transparent"
           }`}
         />
         {[...Array(50)].map((_, i) => (
           <Star
             key={i}
-            className={`absolute ${theme.isDark ? 'text-white/20' : 'text-purple-400/30'} animate-pulse`}
+            className={`absolute ${theme.isDark ? "text-white/20" : "text-purple-400/30"} animate-pulse`}
             style={{
               top: `${Math.random() * 100}%`,
               left: `${Math.random() * 100}%`,
@@ -70,8 +80,8 @@ export function MainLayout() {
       <header
         className={`sticky top-0 z-50 ${
           theme.isDark
-            ? 'bg-slate-950/80 border-purple-500/30'
-            : 'bg-white/80 border-purple-300'
+            ? "bg-slate-950/80 border-purple-500/30"
+            : "bg-white/80 border-purple-300"
         } backdrop-blur-lg border-b`}
       >
         <div className="container mx-auto px-4 py-4">
@@ -91,19 +101,19 @@ export function MainLayout() {
             <nav className="hidden md:flex items-center space-x-6">
               <Link
                 to="/"
-                className={`${theme.isDark ? 'hover:text-purple-400' : 'hover:text-purple-600'} transition-colors`}
+                className={`${theme.isDark ? "hover:text-purple-400" : "hover:text-purple-600"} transition-colors`}
               >
                 Trang chủ
               </Link>
               <Link
                 to="/products"
-                className={`${theme.isDark ? 'hover:text-purple-400' : 'hover:text-purple-600'} transition-colors`}
+                className={`${theme.isDark ? "hover:text-purple-400" : "hover:text-purple-600"} transition-colors`}
               >
                 Sản phẩm
               </Link>
               <Link
                 to="/builder"
-                className={`${theme.isDark ? 'hover:text-purple-400' : 'hover:text-purple-600'} transition-colors`}
+                className={`${theme.isDark ? "hover:text-purple-400" : "hover:text-purple-600"} transition-colors`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Build PC
@@ -111,20 +121,43 @@ export function MainLayout() {
             </nav>
 
             <div className="flex items-center space-x-3">
+              {/* API Docs link (opens Swagger) */}
+              {import.meta.env.VITE_API_DOCS && (
+                <a
+                  href={import.meta.env.VITE_API_DOCS}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`hidden md:inline-block mr-4 px-3 py-2 rounded-lg text-sm font-medium ${
+                    theme.isDark
+                      ? "bg-white/5 hover:bg-white/10 text-gray-200"
+                      : "bg-gray-50 hover:bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  API Docs
+                </a>
+              )}
               <button
                 onClick={theme.toggleTheme}
                 className={`p-2 ${
-                  theme.isDark ? 'hover:bg-purple-500/20' : 'hover:bg-purple-200'
+                  theme.isDark
+                    ? "hover:bg-purple-500/20"
+                    : "hover:bg-purple-200"
                 } rounded-lg transition-colors`}
-                title={theme.isDark ? 'Chế độ sáng' : 'Chế độ tối'}
+                title={theme.isDark ? "Chế độ sáng" : "Chế độ tối"}
               >
-                {theme.isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {theme.isDark ? (
+                  <Sun className="w-5 h-5" />
+                ) : (
+                  <Moon className="w-5 h-5" />
+                )}
               </button>
 
               <Link
                 to="/cart"
                 className={`relative p-2 ${
-                  theme.isDark ? 'hover:bg-purple-500/20' : 'hover:bg-purple-200'
+                  theme.isDark
+                    ? "hover:bg-purple-500/20"
+                    : "hover:bg-purple-200"
                 } rounded-lg transition-colors`}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -162,7 +195,10 @@ export function MainLayout() {
                   </button>
                   {userMenuOpen && (
                     <>
-                      <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setUserMenuOpen(false)}
+                      />
                       <div
                         className={`absolute right-0 mt-3 w-64 rounded-2xl overflow-hidden shadow-2xl z-50 border ${
                           theme.isDark
@@ -219,8 +255,8 @@ export function MainLayout() {
                     onClick={auth.openLogin}
                     className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                       theme.isDark
-                        ? 'hover:bg-purple-500/20 text-gray-200'
-                        : 'hover:bg-purple-100 text-gray-700'
+                        ? "hover:bg-purple-500/20 text-gray-200"
+                        : "hover:bg-purple-100 text-gray-700"
                     }`}
                   >
                     Đăng nhập
@@ -237,10 +273,16 @@ export function MainLayout() {
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className={`md:hidden p-2 ${
-                  theme.isDark ? 'hover:bg-purple-500/20' : 'hover:bg-purple-200'
+                  theme.isDark
+                    ? "hover:bg-purple-500/20"
+                    : "hover:bg-purple-200"
                 } rounded-lg transition-colors`}
               >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {mobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
               </button>
             </div>
           </div>
@@ -248,13 +290,15 @@ export function MainLayout() {
           {mobileMenuOpen && (
             <nav
               className={`md:hidden mt-4 pb-4 space-y-2 border-t ${
-                theme.isDark ? 'border-purple-500/30' : 'border-purple-300'
+                theme.isDark ? "border-purple-500/30" : "border-purple-300"
               } pt-4`}
             >
               <Link
                 to="/"
                 className={`block w-full text-left px-4 py-2 ${
-                  theme.isDark ? 'hover:bg-purple-500/20' : 'hover:bg-purple-200'
+                  theme.isDark
+                    ? "hover:bg-purple-500/20"
+                    : "hover:bg-purple-200"
                 } rounded-lg transition-colors`}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -263,7 +307,9 @@ export function MainLayout() {
               <Link
                 to="/products"
                 className={`block w-full text-left px-4 py-2 ${
-                  theme.isDark ? 'hover:bg-purple-500/20' : 'hover:bg-purple-200'
+                  theme.isDark
+                    ? "hover:bg-purple-500/20"
+                    : "hover:bg-purple-200"
                 } rounded-lg transition-colors`}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -272,26 +318,36 @@ export function MainLayout() {
               <Link
                 to="/builder"
                 className={`block w-full text-left px-4 py-2 ${
-                  theme.isDark ? 'hover:bg-purple-500/20' : 'hover:bg-purple-200'
+                  theme.isDark
+                    ? "hover:bg-purple-500/20"
+                    : "hover:bg-purple-200"
                 } rounded-lg transition-colors`}
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Build PC
               </Link>
               {!auth.isLoggedIn && (
-                <div className={`flex gap-2 pt-2 mt-2 border-t ${theme.isDark ? 'border-purple-500/20' : 'border-purple-200'}`}>
+                <div
+                  className={`flex gap-2 pt-2 mt-2 border-t ${theme.isDark ? "border-purple-500/20" : "border-purple-200"}`}
+                >
                   <button
-                    onClick={() => { auth.openLogin(); setMobileMenuOpen(false); }}
+                    onClick={() => {
+                      auth.openLogin();
+                      setMobileMenuOpen(false);
+                    }}
                     className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
                       theme.isDark
-                        ? 'bg-white/5 border border-purple-500/20 text-gray-200'
-                        : 'bg-gray-50 border border-gray-200 text-gray-700'
+                        ? "bg-white/5 border border-purple-500/20 text-gray-200"
+                        : "bg-gray-50 border border-gray-200 text-gray-700"
                     }`}
                   >
                     Đăng nhập
                   </button>
                   <button
-                    onClick={() => { auth.openRegister(); setMobileMenuOpen(false); }}
+                    onClick={() => {
+                      auth.openRegister();
+                      setMobileMenuOpen(false);
+                    }}
                     className="flex-1 py-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-sm font-semibold text-white"
                   >
                     Đăng ký
@@ -313,8 +369,8 @@ export function MainLayout() {
       <footer
         className={`relative z-10 mt-20 border-t ${
           theme.isDark
-            ? 'border-purple-500/30 bg-slate-950/50'
-            : 'border-purple-300 bg-white/50'
+            ? "border-purple-500/30 bg-slate-950/50"
+            : "border-purple-300 bg-white/50"
         } backdrop-blur-sm`}
       >
         <div className="container mx-auto px-4 py-8">
@@ -322,52 +378,67 @@ export function MainLayout() {
             <div>
               <h3
                 className={`font-bold text-lg mb-4 ${
-                  theme.isDark ? 'text-purple-400' : 'text-purple-600'
+                  theme.isDark ? "text-purple-400" : "text-purple-600"
                 }`}
               >
                 CosmicTech
               </h3>
-              <p className={`text-sm ${theme.isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Cung cấp laptop, PC và linh kiện điện tử chất lượng cao với giá tốt nhất.
+              <p
+                className={`text-sm ${theme.isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
+                Cung cấp laptop, PC và linh kiện điện tử chất lượng cao với giá
+                tốt nhất.
               </p>
             </div>
             <div>
               <h3
                 className={`font-bold text-lg mb-4 ${
-                  theme.isDark ? 'text-purple-400' : 'text-purple-600'
+                  theme.isDark ? "text-purple-400" : "text-purple-600"
                 }`}
               >
                 Liên hệ
               </h3>
-              <p className={`text-sm ${theme.isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p
+                className={`text-sm ${theme.isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 Email: support@cosmictech.vn
               </p>
-              <p className={`text-sm ${theme.isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p
+                className={`text-sm ${theme.isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 Hotline: 1900-xxxx
               </p>
             </div>
             <div>
               <h3
                 className={`font-bold text-lg mb-4 ${
-                  theme.isDark ? 'text-purple-400' : 'text-purple-600'
+                  theme.isDark ? "text-purple-400" : "text-purple-600"
                 }`}
               >
                 Hỗ trợ
               </h3>
-              <p className={`text-sm ${theme.isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p
+                className={`text-sm ${theme.isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 Chính sách bảo hành
               </p>
-              <p className={`text-sm ${theme.isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p
+                className={`text-sm ${theme.isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 Hướng dẫn trả góp
               </p>
-              <p className={`text-sm ${theme.isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              <p
+                className={`text-sm ${theme.isDark ? "text-gray-400" : "text-gray-600"}`}
+              >
                 Chính sách đổi trả
               </p>
             </div>
           </div>
           <div
             className={`mt-8 pt-8 border-t ${
-              theme.isDark ? 'border-purple-500/30 text-gray-400' : 'border-purple-300 text-gray-600'
+              theme.isDark
+                ? "border-purple-500/30 text-gray-400"
+                : "border-purple-300 text-gray-600"
             } text-center text-sm`}
           >
             © 2026 CosmicTech. All rights reserved.

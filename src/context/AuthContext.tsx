@@ -4,7 +4,7 @@ import { loginApi, registerApi } from '@/api/auth';
 import { clearToken, setOnUnauthorized } from '@/api/client';
 import { toast } from 'sonner';
 
-type AuthModal = 'login' | 'register' | null;
+type AuthModal = "login" | "register" | null;
 
 type AuthContextValue = {
   user: User | null;
@@ -92,6 +92,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  // try to restore session if token exists
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const me = await getMeApi();
+        if (mounted) setUser(me);
+      } catch (err) {
+        // no-op
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -113,6 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
