@@ -73,10 +73,10 @@ export function ProductListPage() {
                   : 'bg-white border border-purple-300 focus:border-purple-500 text-gray-900'
               }`}
             >
-              <option value="default">Mặc định</option>
-              <option value="price-asc">Giá thấp đến cao</option>
-              <option value="price-desc">Giá cao đến thấp</option>
-              <option value="name">Tên A-Z</option>
+              <option value="default" style={{ background: isDark ? '#0f172a' : '#fff', color: isDark ? '#fff' : '#111' }}>Mặc định</option>
+              <option value="price-asc" style={{ background: isDark ? '#0f172a' : '#fff', color: isDark ? '#fff' : '#111' }}>Giá thấp đến cao</option>
+              <option value="price-desc" style={{ background: isDark ? '#0f172a' : '#fff', color: isDark ? '#fff' : '#111' }}>Giá cao đến thấp</option>
+              <option value="name" style={{ background: isDark ? '#0f172a' : '#fff', color: isDark ? '#fff' : '#111' }}>Tên A-Z</option>
             </select>
           </div>
           <div className="flex items-center gap-2">

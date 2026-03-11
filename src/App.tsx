@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { CartProvider, ThemeProvider, AuthProvider } from '@/context';
 import { MainLayout } from '@/layouts/MainLayout';
+import { AdminLayout } from '@/layouts/AdminLayout';
 import {
   HomePage,
   ProductListPage,
@@ -9,6 +10,12 @@ import {
   CartPage,
   CheckoutPage,
 } from '@/pages';
+import { AdminDashboardPage } from '@/pages/admin/AdminDashboardPage';
+import { AdminProductsPage } from '@/pages/admin/AdminProductsPage';
+import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
+import { StaffLayout } from '@/layouts/StaffLayout';
+import { StaffDashboardPage } from '@/pages/staff/StaffDashboardPage';
+import { StaffRequestsPage } from '@/pages/staff/StaffRequestsPage';
 
 export default function App() {
   return (
@@ -25,6 +32,17 @@ export default function App() {
                 <Route path="builder" element={<PCBuilderPage />} />
                 <Route path="cart" element={<CartPage />} />
                 <Route path="checkout" element={<CheckoutPage />} />
+              </Route>
+
+              <Route path="admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboardPage />} />
+                <Route path="products" element={<AdminProductsPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+              </Route>
+
+              <Route path="staff" element={<StaffLayout />}>
+                <Route index element={<StaffDashboardPage />} />
+                <Route path="requests" element={<StaffRequestsPage />} />
               </Route>
             </Routes>
           </CartProvider>
