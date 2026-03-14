@@ -39,8 +39,9 @@ export async function apiClient<T = unknown>(
   }
 
   const token = getToken();
+  const isFormData = body instanceof FormData;
   const requestHeaders: Record<string, string> = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...headers,
   };
   if (token) {
@@ -50,7 +51,7 @@ export async function apiClient<T = unknown>(
   const res = await fetch(url, {
     method,
     headers: requestHeaders,
-    body: body ? JSON.stringify(body) : undefined,
+    body: isFormData ? body : body ? JSON.stringify(body) : undefined,
   });
 
   if (!res.ok) {

@@ -16,6 +16,11 @@ import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { StaffLayout } from '@/layouts/StaffLayout';
 import { StaffDashboardPage } from '@/pages/staff/StaffDashboardPage';
 import { StaffRequestsPage } from '@/pages/staff/StaffRequestsPage';
+import { ManagerLayout } from '@/layouts/ManagerLayout';
+import { ManagerDashboardPage } from '@/pages/manager/ManagerDashboardPage';
+import { ManagerProductsPage } from '@/pages/manager/ManagerProductsPage';
+import { ManagerCategoriesPage } from '@/pages/manager/ManagerCategoriesPage';
+import { ManagerPromotionsPage } from '@/pages/manager/ManagerPromotionsPage';
 
 export default function App() {
   return (
@@ -43,6 +48,13 @@ export default function App() {
               <Route path="staff" element={<StaffLayout />}>
                 <Route index element={<StaffDashboardPage />} />
                 <Route path="requests" element={<StaffRequestsPage />} />
+              </Route>
+
+              <Route path="manager" element={<ManagerLayout />}>
+                <Route index element={<ManagerDashboardPage />} />
+                <Route path="products" element={<ManagerProductsPage />} />
+                <Route path="categories" element={<ManagerCategoriesPage />} />
+                <Route path="promotions" element={<ManagerPromotionsPage />} />
               </Route>
             </Routes>
           </CartProvider>
