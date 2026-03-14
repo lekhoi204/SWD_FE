@@ -3,15 +3,19 @@
  */
 
 export type ProductCategory =
-  | 'laptop'
-  | 'pc'
-  | 'cpu'
-  | 'gpu'
-  | 'ram'
-  | 'storage'
-  | 'motherboard'
-  | 'psu'
-  | 'case';
+  | "laptop"
+  | "pc"
+  | "cpu"
+  | "gpu"
+  | "ram"
+  | "storage"
+  | "motherboard"
+  | "psu"
+  | "case"
+  | "cooling"
+  | "monitor"
+  | "keyboard"
+  | "mouse";
 
 export type Product = {
   id: string;
@@ -29,11 +33,13 @@ export type CartItem = {
   quantity: number;
 };
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = "dark" | "light";
 
 export type User = {
-  id: string;
+  user_id: number;
   name: string;
   email: string;
-  avatar?: string;
+  phone?: string;
+  address?: string | null;
+  created_at: string;
 };

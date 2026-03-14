@@ -1,29 +1,36 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 type RequestOptions = {
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   headers?: Record<string, string>;
   params?: Record<string, string>;
 };
 
+type OnUnauthorizedCallback = () => void;
+let onUnauthorized: OnUnauthorizedCallback | null = null;
+
+export function setOnUnauthorized(callback: OnUnauthorizedCallback) {
+  onUnauthorized = callback;
+}
+
 function getToken(): string | null {
-  return localStorage.getItem('access_token');
+  return localStorage.getItem("access_token");
 }
 
 export function setToken(token: string) {
-  localStorage.setItem('access_token', token);
+  localStorage.setItem("access_token", token);
 }
 
 export function clearToken() {
-  localStorage.removeItem('access_token');
+  localStorage.removeItem("access_token");
 }
 
 export async function apiClient<T = unknown>(
   endpoint: string,
   options: RequestOptions = {},
 ): Promise<T> {
-  const { method = 'GET', body, headers = {}, params } = options;
+  const { method = "GET", body, headers = {}, params } = options;
 
   let url = `${BASE_URL}${endpoint}`;
   if (params) {
@@ -33,11 +40,11 @@ export async function apiClient<T = unknown>(
 
   const token = getToken();
   const requestHeaders: Record<string, string> = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...headers,
   };
   if (token) {
-    requestHeaders['Authorization'] = `Bearer ${token}`;
+    requestHeaders["Authorization"] = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {
@@ -48,7 +55,16 @@ export async function apiClient<T = unknown>(
 
   if (!res.ok) {
     const errorBody = await res.json().catch(() => null);
-    throw new ApiError(res.status, errorBody?.message || res.statusText, errorBody);
+
+    if (res.status === 401 && token) {
+      onUnauthorized?.();
+    }
+
+    throw new ApiError(
+      res.status,
+      errorBody?.message || res.statusText,
+      errorBody,
+    );
   }
 
   if (res.status === 204) return undefined as T;
@@ -61,7 +77,7 @@ export class ApiError extends Error {
 
   constructor(status: number, message: string, data?: unknown) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
     this.status = status;
     this.data = data;
   }

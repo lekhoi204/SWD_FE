@@ -3,8 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import { Filter, Grid, List } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { useCart } from "@/context/CartContext";
-import { getProductsApi } from "@/api/products";
+import { getProductsApi, getProductsByCategoryIdApi } from "@/api/products";
+import { getCategoriesApi } from "@/api/categories";
 import { CATEGORY_LABELS } from "@/constants/categories";
+import { Breadcrumb } from "@/components/Breadcrumb";
 import type { Product } from "@/types";
 
 export function ProductListPage() {
@@ -21,15 +23,80 @@ export function ProductListPage() {
   ]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCategoryFetch, setIsCategoryFetch] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
         setLoading(true);
-        const data = await getProductsApi();
-        if (mounted) {
-          setProducts(data);
+        setIsCategoryFetch(false);
+        // If category is provided (not 'all'), try to resolve backend category id
+        if (category !== "all") {
+          try {
+            const categories = await getCategoriesApi();
+            const targetLabel = CATEGORY_LABELS[category] ?? category;
+
+            // Normalizes strings for robust matching (remove diacritics, spaces, punctuation)
+            const normalize = (s: string) =>
+              String(s)
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/\p{Diacritic}/gu, "")
+                .replace(/[^a-z0-9]/g, "");
+
+            const targetNorm = normalize(targetLabel);
+            const keyNorm = normalize(category);
+
+            // find by normalized equality or inclusion
+            let matched = categories.find((c) => {
+              if (!c || !c.name) return false;
+              const nameNorm = normalize(String(c.name));
+              return (
+                nameNorm === targetNorm ||
+                nameNorm === keyNorm ||
+                nameNorm.includes(targetNorm) ||
+                targetNorm.includes(nameNorm) ||
+                nameNorm.includes(keyNorm)
+              );
+            });
+
+            console.debug("Fetched categories for matching:", categories);
+            console.debug(
+              "Category param:",
+              category,
+              "targetLabel:",
+              targetLabel,
+              "matched:",
+              matched,
+            );
+
+            if (matched) {
+              const data = await getProductsByCategoryIdApi(
+                matched.category_id,
+              );
+              if (mounted) {
+                setProducts(data);
+                setIsCategoryFetch(true);
+              }
+            } else {
+              const data = await getProductsApi();
+              if (mounted) setProducts(data);
+            }
+          } catch (err) {
+            // On any error, fallback to fetch all and filter client-side
+            console.error(
+              "Category lookup failed, falling back to all products",
+              err,
+            );
+            const data = await getProductsApi();
+            if (mounted) setProducts(data);
+          }
+        } else {
+          const data = await getProductsApi();
+          if (mounted) {
+            setProducts(data);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -40,11 +107,14 @@ export function ProductListPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [category]);
 
   const filteredProducts = useMemo(() => {
-    let filtered =
-      category === "all"
+    // If products are fetched from category API, no need to filter by category again
+    // since backend already filtered them
+    let filtered = isCategoryFetch
+      ? products
+      : category === "all"
         ? products
         : products.filter((p) => p.category === category);
     filtered = filtered.filter(
@@ -64,12 +134,18 @@ export function ProductListPage() {
         break;
     }
     return filtered;
-  }, [category, sortBy, priceRange, products]);
+  }, [category, sortBy, priceRange, products, isCategoryFetch]);
 
   const categoryName = CATEGORY_LABELS[category] ?? "Sản phẩm";
 
+  const breadcrumbItems =
+    category === "all"
+      ? [{ label: "Sản phẩm" }]
+      : [{ label: "Sản phẩm", to: "/products" }, { label: categoryName }];
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <Breadcrumb items={breadcrumbItems} />
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
           {categoryName}
@@ -100,10 +176,42 @@ export function ProductListPage() {
                   : "bg-white border border-purple-300 focus:border-purple-500 text-gray-900"
               }`}
             >
-              <option value="default">Mặc định</option>
-              <option value="price-asc">Giá thấp đến cao</option>
-              <option value="price-desc">Giá cao đến thấp</option>
-              <option value="name">Tên A-Z</option>
+              <option
+                value="default"
+                style={{
+                  background: isDark ? "#0f172a" : "#fff",
+                  color: isDark ? "#fff" : "#111",
+                }}
+              >
+                Mặc định
+              </option>
+              <option
+                value="price-asc"
+                style={{
+                  background: isDark ? "#0f172a" : "#fff",
+                  color: isDark ? "#fff" : "#111",
+                }}
+              >
+                Giá thấp đến cao
+              </option>
+              <option
+                value="price-desc"
+                style={{
+                  background: isDark ? "#0f172a" : "#fff",
+                  color: isDark ? "#fff" : "#111",
+                }}
+              >
+                Giá cao đến thấp
+              </option>
+              <option
+                value="name"
+                style={{
+                  background: isDark ? "#0f172a" : "#fff",
+                  color: isDark ? "#fff" : "#111",
+                }}
+              >
+                Tên A-Z
+              </option>
             </select>
           </div>
           <div className="flex items-center gap-2">

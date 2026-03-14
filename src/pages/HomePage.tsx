@@ -15,6 +15,11 @@ const CATEGORY_ICONS: Record<string, string> = {
   storage: "💾",
   motherboard: "⚡",
   psu: "🔋",
+  case: "📦",
+  cooling: "❄️",
+  monitor: "🖼️",
+  keyboard: "⌨️",
+  mouse: "🖱️",
 };
 
 export function HomePage() {
