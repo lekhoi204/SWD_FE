@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { getProductsApi } from '@/api/products';
 import { getCategoriesApi, type Category } from '@/api/categories';
 import { apiClient } from '@/api/client';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Product } from '@/types';
 
 const formatPrice = (p: number) => p.toLocaleString('vi-VN') + 'đ';
@@ -22,6 +23,8 @@ export function ManagerProductsPage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = async () => {
@@ -38,7 +41,7 @@ export function ManagerProductsPage() {
 
   const filtered = products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchCat = filterCat === 'all' || p.category === filterCat;
+    const matchCat = filterCat === 'all' || String(p.category_id) === filterCat;
     return matchSearch && matchCat;
   });
 
@@ -51,7 +54,7 @@ export function ManagerProductsPage() {
   };
 
   const openEdit = (p: Product) => {
-    setForm({ name: p.name, category_id: '', price: String(p.price), stock: String(p.stock), description: p.description, brand: p.specs?.Brand || '', status: 'Available' });
+    setForm({ name: p.name, category_id: p.category_id ? String(p.category_id) : '', price: String(p.price), stock: String(p.stock), description: p.description, brand: p.specs?.Brand || '', status: 'Available' });
     setImageFile(null);
     setImagePreview(p.image && !p.image.includes('placeholder') ? p.image : null);
     setEditProduct(p);
@@ -97,13 +100,16 @@ export function ManagerProductsPage() {
     } finally { setSaving(false); }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await apiClient(`/products/${id}`, { method: 'DELETE' });
+      await apiClient(`/products/${deleteTarget.id}`, { method: 'DELETE' });
       toast.success('Xóa sản phẩm thành công');
+      setDeleteTarget(null);
       await fetchData();
     } catch (err: any) { toast.error(err?.message || 'Xóa thất bại'); }
+    finally { setDeleting(false); }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -137,7 +143,7 @@ export function ManagerProductsPage() {
         </div>
         <select value={filterCat} onChange={(e) => setFilterCat(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px', cursor: 'pointer' }}>
           <option value="all" style={{ background: '#0f0a24', color: '#fff' }}>Tất cả danh mục</option>
-          {categories.map((c) => <option key={c.category_id} value={c.name.toLowerCase()} style={{ background: '#0f0a24', color: '#fff' }}>{c.name}</option>)}
+          {categories.map((c) => <option key={c.category_id} value={String(c.category_id)} style={{ background: '#0f0a24', color: '#fff' }}>{c.name}</option>)}
         </select>
       </div>
 
@@ -168,7 +174,7 @@ export function ManagerProductsPage() {
                     </div>
                   </td>
                   <td style={{ padding: '14px 20px' }}>
-                    <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}>{p.category}</span>
+                    <span style={{ padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#f59e0b', background: 'rgba(245,158,11,0.12)' }}>{p.category_name || p.category}</span>
                   </td>
                   <td style={{ padding: '14px 20px', fontSize: '14px', color: '#10b981', fontWeight: 600 }}>{formatPrice(p.price)}</td>
                   <td style={{ padding: '14px 20px', fontSize: '14px', color: p.stock < 10 ? '#ef4444' : '#d1d5db' }}>{p.stock}</td>
@@ -177,7 +183,7 @@ export function ManagerProductsPage() {
                       <button onClick={() => openEdit(p)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', display: 'flex' }}>
                         <Pencil style={{ width: 16, height: 16 }} />
                       </button>
-                      <button onClick={() => handleDelete(p.id)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#f87171', display: 'flex' }}>
+                      <button onClick={() => setDeleteTarget(p)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#f87171', display: 'flex' }}>
                         <Trash2 style={{ width: 16, height: 16 }} />
                       </button>
                     </div>
@@ -292,6 +298,16 @@ export function ManagerProductsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Xóa sản phẩm"
+        message={`Bạn chắc chắn muốn xóa "${deleteTarget?.name}"? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa sản phẩm"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

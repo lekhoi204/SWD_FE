@@ -21,17 +21,31 @@ type AuthResponse = {
   token?: string;
 };
 
+const LOGIN_ERROR_MAP: Record<string, string> = {
+  "Invalid email or password": "Email hoặc mật khẩu không đúng",
+  "User not found": "Tài khoản không tồn tại",
+  "Account is disabled": "Tài khoản đã bị vô hiệu hóa",
+};
+
 export async function loginApi(data: LoginRequest): Promise<User> {
   clearToken();
-  const res = await apiClient<{ message: string; token: string; user: User }>(
-    "/auth/login",
-    {
-      method: "POST",
-      body: data,
-    },
-  );
-  if (res.token) setToken(res.token);
-  return res.user;
+  try {
+    const res = await apiClient<{ message: string; token: string; user: User }>(
+      "/auth/login",
+      {
+        method: "POST",
+        body: data,
+      },
+    );
+    if (res.token) setToken(res.token);
+    return res.user;
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      const vnMessage = LOGIN_ERROR_MAP[err.message];
+      if (vnMessage) throw new Error(vnMessage);
+    }
+    throw err;
+  }
 }
 
 export async function registerApi(data: RegisterRequest): Promise<User> {

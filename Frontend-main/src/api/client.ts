@@ -63,7 +63,7 @@ export async function apiClient<T = unknown>(
 
     throw new ApiError(
       res.status,
-      errorBody?.message || res.statusText,
+      errorBody?.message || errorBody?.error || res.statusText,
       errorBody,
     );
   }

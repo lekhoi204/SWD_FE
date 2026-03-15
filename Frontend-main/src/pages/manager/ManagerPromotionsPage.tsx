@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Search, X, Tag, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import { getPromotionsApi, type Promotion } from '@/api/promotions';
 import { apiClient } from '@/api/client';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
 
@@ -16,6 +17,8 @@ export function ManagerPromotionsPage() {
   const [editPromo, setEditPromo] = useState<Promotion | null>(null);
   const [form, setForm] = useState({ code: '', discount_percent: '', valid_from: '', valid_to: '' });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Promotion | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -81,13 +84,16 @@ export function ManagerPromotionsPage() {
     } finally { setSaving(false); }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn chắc chắn muốn xóa khuyến mãi này?')) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await apiClient(`/promotions/${id}`, { method: 'DELETE' });
+      await apiClient(`/promotions/${deleteTarget.promotion_id}`, { method: 'DELETE' });
       toast.success('Xóa khuyến mãi thành công');
+      setDeleteTarget(null);
       await fetchData();
     } catch (err: any) { toast.error(err?.message || 'Xóa thất bại'); }
+    finally { setDeleting(false); }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -159,7 +165,7 @@ export function ManagerPromotionsPage() {
                 <button onClick={() => openEdit(p)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', display: 'flex' }}>
                   <Pencil style={{ width: 16, height: 16 }} />
                 </button>
-                <button onClick={() => handleDelete(p.promotion_id)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#f87171', display: 'flex' }}>
+                <button onClick={() => setDeleteTarget(p)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#f87171', display: 'flex' }}>
                   <Trash2 style={{ width: 16, height: 16 }} />
                 </button>
               </div>
@@ -210,6 +216,16 @@ export function ManagerPromotionsPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Xóa khuyến mãi"
+        message={`Bạn chắc chắn muốn xóa mã "${deleteTarget?.code}"? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xóa khuyến mãi"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

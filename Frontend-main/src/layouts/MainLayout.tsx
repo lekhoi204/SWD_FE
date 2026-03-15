@@ -15,7 +15,6 @@ import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import { Toaster } from "@/components/Toaster";
-import { AuthModal } from "@/components/AuthModal";
 
 export function MainLayout() {
   const theme = useTheme();
@@ -358,8 +357,6 @@ export function MainLayout() {
           )}
         </div>
       </header>
-
-      <AuthModal />
 
       <main className="relative z-10">
         <Outlet />

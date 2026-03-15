@@ -21,6 +21,8 @@ export type Product = {
   id: string;
   name: string;
   category: ProductCategory;
+  category_id?: number;
+  category_name?: string;
   price: number;
   image: string;
   description: string;
@@ -35,10 +37,13 @@ export type CartItem = {
 
 export type ThemeMode = "dark" | "light";
 
+export type UserRole = "admin" | "manager" | "staff" | "customer";
+
 export type User = {
   user_id: number;
   name: string;
   email: string;
+  role?: UserRole;
   phone?: string;
   address?: string | null;
   created_at: string;

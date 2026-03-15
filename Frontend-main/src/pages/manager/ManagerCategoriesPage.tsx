@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getCategoriesApi, createCategoryApi, updateCategoryApi, deleteCategoryApi, type Category } from '@/api/categories';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 type ModalMode = 'create' | 'edit' | null;
 
@@ -12,6 +13,8 @@ export function ManagerCategoriesPage() {
   const [editCat, setEditCat] = useState<Category | null>(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -55,13 +58,16 @@ export function ManagerCategoriesPage() {
     } finally { setSaving(false); }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Bạn chắc chắn muốn xóa danh mục này?')) return;
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await deleteCategoryApi(id);
+      await deleteCategoryApi(deleteTarget.category_id);
       toast.success('Xóa danh mục thành công');
+      setDeleteTarget(null);
       await fetchData();
     } catch (err: any) { toast.error(err?.message || 'Xóa thất bại'); }
+    finally { setDeleting(false); }
   };
 
   const inputStyle: React.CSSProperties = {
@@ -103,7 +109,7 @@ export function ManagerCategoriesPage() {
                 <button onClick={() => openEdit(c)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', display: 'flex' }}>
                   <Pencil style={{ width: 16, height: 16 }} />
                 </button>
-                <button onClick={() => handleDelete(c.category_id)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#f87171', display: 'flex' }}>
+                <button onClick={() => setDeleteTarget(c)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(239,68,68,0.15)', color: '#f87171', display: 'flex' }}>
                   <Trash2 style={{ width: 16, height: 16 }} />
                 </button>
               </div>
@@ -143,6 +149,16 @@ export function ManagerCategoriesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Xóa danh mục"
+        message={`Bạn chắc chắn muốn xóa danh mục "${deleteTarget?.name}"? Các sản phẩm thuộc danh mục này có thể bị ảnh hưởng.`}
+        confirmLabel="Xóa danh mục"
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

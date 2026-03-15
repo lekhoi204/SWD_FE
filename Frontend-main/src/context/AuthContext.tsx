@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "@/types";
-import { loginApi, registerApi } from "@/api/auth";
+import { loginApi, registerApi, getMeApi } from "@/api/auth";
 import { clearToken, setOnUnauthorized } from "@/api/client";
 import { toast } from "sonner";
 
@@ -73,9 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string): Promise<boolean> => {
       try {
-        const res = await loginApi({ email, password });
-        setUser(res.user);
-        saveUser(res.user);
+        const userData = await loginApi({ email, password });
+        setUser(userData);
+        saveUser(userData);
         setAuthModal(null);
         return true;
       } catch (err: unknown) {
@@ -96,9 +96,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       phone?: string,
     ): Promise<boolean> => {
       try {
-        const res = await registerApi({ name, email, password, phone });
-        setUser(res.user);
-        saveUser(res.user);
+        const userData = await registerApi({ name, email, password, phone });
+        setUser(userData);
+        saveUser(userData);
         setAuthModal(null);
         return true;
       } catch (err: unknown) {

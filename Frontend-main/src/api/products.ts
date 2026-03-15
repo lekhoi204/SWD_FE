@@ -104,6 +104,8 @@ function mapBackendProduct(bp: BackendProduct): Product {
     id: String(bp.product_id),
     name: bp.name,
     category,
+    category_id: bp.category_id,
+    category_name: bp.category_name || undefined,
     price: bp.price,
     image: bp.image_url || "https://via.placeholder.com/400",
     description: bp.description || `${bp.brand || ""} ${bp.name}`.trim(),

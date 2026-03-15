@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
-  Package,
   Users,
   Menu,
   X,
@@ -15,8 +14,7 @@ import { Toaster } from '@/components/Toaster';
 
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
-  { label: 'Sản phẩm', icon: Package, to: '/admin/products' },
-  { label: 'Người dùng', icon: Users, to: '/admin/users' },
+  { label: 'Quản lý tài khoản', icon: Users, to: '/admin/users' },
 ];
 
 export function AdminLayout() {
