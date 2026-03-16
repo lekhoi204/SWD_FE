@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { Search, X, Eye, Trash2, Pencil, Package, Clock, CheckCircle, XCircle, Truck, CreditCard, Banknote } from 'lucide-react';
 import { toast } from 'sonner';
 import { getOrdersApi, updateOrderApi, deleteOrderApi } from '@/api/orders';
+import { getProductsApi } from '@/api/products';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import type { OrderDetail } from '@/types';
+import type { OrderDetail, Product } from '@/types';
 
 const ORDER_STATUSES = [
   { value: 'all', label: 'Tất cả' },
@@ -45,6 +46,7 @@ const inputStyle: React.CSSProperties = {
 
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderDetail[]>([]);
+  const [productsMap, setProductsMap] = useState<Record<number, Product>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -59,11 +61,18 @@ export function AdminOrdersPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await getOrdersApi();
-      setOrders(data);
+      const [ordersData, productsData] = await Promise.all([
+        getOrdersApi(),
+        getProductsApi()
+      ]);
+      setOrders(ordersData);
+      
+      const pMap: Record<number, Product> = {};
+      productsData.forEach(p => pMap[Number(p.id)] = p);
+      setProductsMap(pMap);
     } catch (err) {
       console.error(err);
-      toast.error('Không thể tải danh sách đơn hàng');
+      toast.error('Không thể tải dữ liệu');
     } finally { setLoading(false); }
   };
 
@@ -111,7 +120,11 @@ export function AdminOrdersPage() {
       setDeleteTarget(null);
       await fetchData();
     } catch (err: any) {
-      toast.error(err?.message || 'Xóa thất bại');
+      const msg = err?.message || err?.data?.message || err?.data?.error || 'Xóa thất bại';
+      const hint = err?.status === 500
+        ? ' (Backend có thể chặn xóa do ràng buộc dữ liệu - kiểm tra cascade delete)'
+        : '';
+      toast.error(String(msg) + hint);
     } finally { setDeleting(false); }
   };
 
@@ -247,6 +260,37 @@ export function AdminOrdersPage() {
               <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(139,92,246,0.1)' }}>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 6px' }}>Địa chỉ giao hàng</p>
                 <p style={{ fontSize: '14px', color: '#d1d5db', margin: 0, lineHeight: 1.5 }}>{viewOrder.shipping_address}</p>
+              </div>
+            )}
+
+            {viewOrder.order_items && viewOrder.order_items.length > 0 && (
+              <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(139,92,246,0.1)' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', margin: '0 0 12px' }}>Sản phẩm đã đặt</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {viewOrder.order_items.map((item, idx) => {
+                    const product = item.product_id ? productsMap[item.product_id] : null;
+                    return (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                        {product ? (
+                          <img src={product.image} alt={product.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', background: '#fff' }} />
+                        ) : (
+                          <div style={{ width: '48px', height: '48px', borderRadius: '6px', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '12px', textAlign: 'center' }}>
+                            {item.user_build_id ? 'PC Build' : 'No Img'}
+                          </div>
+                        )}
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: '14px', fontWeight: 500, color: '#fff', margin: '0 0 4px' }}>
+                            {product ? product.name : (item.user_build_id ? `PC Build (ID: #${item.user_build_id})` : `Sản phẩm #${item.product_id}`)}
+                          </p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '12px', color: '#9ca3af' }}>SL: <strong style={{ color: '#fff' }}>{item.quantity}</strong></span>
+                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#10b981' }}>{formatPrice(item.price)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
 

@@ -49,6 +49,15 @@ export type User = {
   created_at: string;
 };
 
+export type OrderItem = {
+  order_detail_id?: number;
+  order_id?: number;
+  product_id?: number;
+  user_build_id?: number;
+  quantity: number;
+  price: number;
+};
+
 export type OrderDetail = {
   order_id: number;
   user_id: number;
@@ -63,6 +72,7 @@ export type OrderDetail = {
   user_email?: string;
   user_phone?: string | null;
   promotion_code?: string | null;
+  order_items?: OrderItem[];
 };
 
 export type CartItemForOrder = {

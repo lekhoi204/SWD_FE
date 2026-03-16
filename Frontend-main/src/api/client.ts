@@ -61,15 +61,15 @@ export async function apiClient<T = unknown>(
       onUnauthorized?.();
     }
 
-    throw new ApiError(
-      res.status,
-      errorBody?.message || errorBody?.error || res.statusText,
-      errorBody,
-    );
+    const errMsg =
+      errorBody?.error || errorBody?.message || errorBody?.detail || res.statusText;
+    throw new ApiError(res.status, String(errMsg), errorBody);
   }
 
   if (res.status === 204) return undefined as T;
-  return res.json();
+  const text = await res.text();
+  if (!text || text.trim() === "") return undefined as T;
+  return JSON.parse(text);
 }
 
 export class ApiError extends Error {
