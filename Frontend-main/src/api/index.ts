@@ -34,3 +34,16 @@ export {
   getPromotionByCodeApi,
   type Promotion,
 } from "./promotions";
+export {
+  getUsersApi,
+  getUserByIdApi,
+  createUserApi,
+  updateUserApi,
+  deleteUserApi,
+  type User,
+} from "./users";
+export * as PcBuildsApi from "./pcBuilds";
+export * as SpecificationsApi from "./specifications";
+export * as PaymentsApi from "./payments";
+export * as UploadsApi from "./uploads";
+export * as UserBuildsApi from "./userBuilds";

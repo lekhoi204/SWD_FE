@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { X, Eye, EyeOff, Mail, Lock, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -9,6 +10,7 @@ export function AuthModal() {
   const { authModal, closeModal, openLogin, openRegister, login, register } =
     useAuth();
   const { isDark } = useTheme();
+  const navigate = useNavigate();
 
   if (!authModal) return null;
 
@@ -264,6 +266,22 @@ function LoginForm({
     const ok = await onLogin(email, password);
     setLoading(false);
     if (ok) toast.success("Đăng nhập thành công!");
+    if (ok) {
+      try {
+        const raw = localStorage.getItem("user");
+        const u = raw ? JSON.parse(raw) : null;
+        if (u && u.role) {
+          if (u.role === "admin") navigate("/admin");
+          else if (u.role === "staff") navigate("/staff");
+          else if (u.role === "manager") navigate("/manager");
+          else navigate("/profile");
+        } else {
+          navigate("/profile");
+        }
+      } catch (_) {
+        navigate("/");
+      }
+    }
   };
 
   return (

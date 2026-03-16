@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { useTheme } from "@/context/ThemeContext";
 import { useCart } from "@/context/CartContext";
 import { getProductByIdApi } from "@/api/products";
+import {
+  getSpecsByProductIdApi,
+  type Specification,
+} from "@/api/specifications";
 import { getSpecsByProductIdApi, type Specification } from "@/api/specifications";
 import { CATEGORY_LABELS } from "@/constants/categories";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -149,6 +153,9 @@ export function ProductDetailPage() {
                     className="flex justify-between border-b border-purple-500/20 pb-2"
                   >
                     <span className="text-gray-400">{spec.spec_name}</span>
+                    <span className="font-semibold text-right">
+                      {spec.spec_value}
+                    </span>
                     <span className="font-semibold text-right">{spec.spec_value}</span>
                   </div>
                 ))}

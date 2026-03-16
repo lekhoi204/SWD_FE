@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { Filter, Grid, List } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { useCart } from "@/context/CartContext";
@@ -14,6 +14,7 @@ export function ProductListPage() {
   const category = categoryParam ?? "all";
   const { isDark } = useTheme();
   const { addToCart } = useCart();
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<
     "default" | "price-asc" | "price-desc" | "name"
@@ -24,6 +25,20 @@ export function ProductListPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCategoryFetch, setIsCategoryFetch] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
+  // Helper để normalize category name cho URL slug
+  const getCategorySlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .replace(/[^a-z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -34,7 +49,8 @@ export function ProductListPage() {
         // If category is provided (not 'all'), try to resolve backend category id
         if (category !== "all") {
           try {
-            const categories = await getCategoriesApi();
+            const categoryList = await getCategoriesApi();
+            if (mounted) setCategories(categoryList);
             const targetLabel = CATEGORY_LABELS[category] ?? category;
 
             // Normalizes strings for robust matching (remove diacritics, spaces, punctuation)
@@ -49,7 +65,7 @@ export function ProductListPage() {
             const keyNorm = normalize(category);
 
             // find by normalized equality or inclusion
-            let matched = categories.find((c) => {
+            let matched = categoryList.find((c) => {
               if (!c || !c.name) return false;
               const nameNorm = normalize(String(c.name));
               return (
@@ -61,7 +77,7 @@ export function ProductListPage() {
               );
             });
 
-            console.debug("Fetched categories for matching:", categories);
+            console.debug("Fetched categories for matching:", categoryList);
             console.debug(
               "Category param:",
               category,
@@ -93,6 +109,8 @@ export function ProductListPage() {
             if (mounted) setProducts(data);
           }
         } else {
+          const categoryList = await getCategoriesApi();
+          if (mounted) setCategories(categoryList);
           const data = await getProductsApi();
           if (mounted) {
             setProducts(data);
@@ -107,6 +125,10 @@ export function ProductListPage() {
     return () => {
       mounted = false;
     };
+  }, [category]);
+
+  useEffect(() => {
+    setCurrentPage(1);
   }, [category]);
 
   const filteredProducts = useMemo(() => {
@@ -136,6 +158,17 @@ export function ProductListPage() {
     return filtered;
   }, [category, sortBy, priceRange, products, isCategoryFetch]);
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const productsOnCurrentPage = filteredProducts.slice(startIndex, endIndex);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const categoryName = CATEGORY_LABELS[category] ?? "Sản phẩm";
 
   const breadcrumbItems =
@@ -163,14 +196,52 @@ export function ProductListPage() {
         }`}
       >
         <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
             <Filter
               className={`w-5 h-5 ${isDark ? "text-purple-400" : "text-purple-600"}`}
             />
             <select
+              value={category}
+              onChange={(e) => {
+                const slug = e.target.value;
+                if (slug === "all") {
+                  navigate("/products");
+                } else {
+                  navigate(`/products/${slug}`);
+                }
+              }}
+              className={`rounded-lg px-4 py-2 focus:outline-none ${
+                isDark
+                  ? "bg-slate-900/50 border border-purple-500/30 focus:border-purple-400 text-white"
+                  : "bg-white border border-purple-300 focus:border-purple-500 text-gray-900"
+              }`}
+            >
+              <option
+                value="all"
+                style={{
+                  background: isDark ? "#0f172a" : "#fff",
+                  color: isDark ? "#fff" : "#111",
+                }}
+              >
+                Tất cả danh mục
+              </option>
+              {categories.map((cat) => (
+                <option
+                  key={cat.category_id}
+                  value={getCategorySlug(cat.name)}
+                  style={{
+                    background: isDark ? "#0f172a" : "#fff",
+                    color: isDark ? "#fff" : "#111",
+                  }}
+                >
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className={`rounded-lg px-4 py-2 focus:outline-none flex-1 md:flex-initial ${
+              className={`rounded-lg px-4 py-2 focus:outline-none ${
                 isDark
                   ? "bg-slate-900/50 border border-purple-500/30 focus:border-purple-400 text-white"
                   : "bg-white border border-purple-300 focus:border-purple-500 text-gray-900"
@@ -249,7 +320,7 @@ export function ProductListPage() {
 
       {viewMode === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
+          {productsOnCurrentPage.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -261,7 +332,7 @@ export function ProductListPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredProducts.map((product) => (
+          {productsOnCurrentPage.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -270,6 +341,76 @@ export function ProductListPage() {
               viewMode="list"
             />
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div
+          className={`flex flex-wrap items-center justify-center gap-2 mt-12 p-6 rounded-xl transition-colors ${
+            isDark
+              ? "bg-gradient-to-r from-slate-800 to-slate-900"
+              : "bg-gradient-to-r from-purple-50 to-blue-50"
+          }`}
+        >
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              currentPage === 1
+                ? isDark
+                  ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : isDark
+                  ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:scale-105 shadow-lg"
+                  : "bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:scale-105 shadow-lg"
+            }`}
+          >
+            ← Trước
+          </button>
+
+          <div className="flex flex-wrap gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => handlePageChange(page)}
+                className={`w-10 h-10 rounded-lg font-semibold transition-all ${
+                  page === currentPage
+                    ? isDark
+                      ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-105"
+                      : "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg scale-105"
+                    : isDark
+                      ? "bg-slate-700 text-gray-300 hover:bg-slate-600"
+                      : "bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              currentPage === totalPages
+                ? isDark
+                  ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                : isDark
+                  ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:scale-105 shadow-lg"
+                  : "bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:scale-105 shadow-lg"
+            }`}
+          >
+            Tiếp →
+          </button>
+
+          <div
+            className={`ml-4 text-sm font-medium ${
+              isDark ? "text-gray-400" : "text-gray-600"
+            }`}
+          >
+            Trang {currentPage} / {totalPages}
+          </div>
         </div>
       )}
 

@@ -43,6 +43,10 @@ export async function updateSpecApi(
   specId: number,
   data: { spec_name?: string; spec_value?: string },
 ): Promise<Specification> {
+  const res = await apiClient<MutateSpecResponse>(`/specifications/${specId}`, {
+    method: "PUT",
+    body: data,
+  });
   const res = await apiClient<MutateSpecResponse>(
     `/specifications/${specId}`,
     { method: "PUT", body: data },

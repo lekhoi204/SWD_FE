@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import {
   ShoppingCart,
   Cpu,
@@ -10,6 +10,8 @@ import {
   Moon,
   LogOut,
   ChevronDown,
+  User,
+  Settings,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -20,6 +22,7 @@ export function MainLayout() {
   const theme = useTheme();
   const { itemCount: cartItemCount } = useCart();
   const auth = useAuth();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
@@ -172,25 +175,31 @@ export function MainLayout() {
                 <div className="relative">
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className={`flex items-center gap-2.5 pl-1.5 pr-3 py-1.5 rounded-full transition-all ${
+                    aria-expanded={userMenuOpen}
+                    aria-controls="userDropdown"
+                    className={`flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-full transition-all transform ${
                       theme.isDark
-                        ? 'hover:bg-purple-500/15 bg-white/5 border border-purple-500/20'
-                        : 'hover:bg-purple-50 bg-gray-50 border border-gray-200'
-                    }`}
+                        ? "hover:bg-purple-500/12 bg-white/5 border border-transparent shadow-sm"
+                        : "hover:bg-purple-50 bg-white border border-gray-100 shadow-sm"
+                    } focus:outline-none focus:ring-2 focus:ring-purple-400/40 hover:scale-102`}
                   >
                     <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center ring-2 ring-purple-400/30">
                       <span className="text-white text-sm font-bold">
                         {auth.user?.name?.charAt(0).toUpperCase()}
                       </span>
                     </div>
-                    <span className={`hidden md:inline text-sm font-semibold max-w-[140px] truncate ${
-                      theme.isDark ? 'text-white' : 'text-gray-800'
-                    }`}>
+                    <span
+                      className={`hidden md:inline text-sm font-semibold max-w-[140px] truncate ${
+                        theme.isDark ? "text-white" : "text-gray-800"
+                      }`}
+                    >
                       {auth.user?.name}
                     </span>
-                    <ChevronDown className={`w-3.5 h-3.5 hidden md:block transition-transform ${
-                      userMenuOpen ? 'rotate-180' : ''
-                    } ${theme.isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 hidden md:block transition-transform ${
+                        userMenuOpen ? "rotate-180" : ""
+                      } ${theme.isDark ? "text-gray-400" : "text-gray-500"}`}
+                    />
                   </button>
                   {userMenuOpen && (
                     <>
@@ -199,51 +208,156 @@ export function MainLayout() {
                         onClick={() => setUserMenuOpen(false)}
                       />
                       <div
-                        className={`absolute right-0 mt-3 w-64 rounded-2xl overflow-hidden shadow-2xl z-50 border ${
-                          theme.isDark
-                            ? 'bg-slate-900/95 border-purple-500/25 backdrop-blur-xl'
-                            : 'bg-white border-gray-200'
-                        }`}
+                        id="userDropdown"
+                        className={`absolute right-0 mt-3 w-68 sm:w-80 rounded-3xl overflow-hidden z-60 border-transparent ring-1 shadow-2xl`}
                         style={{
-                          animation: 'dropdownIn 0.15s ease-out',
+                          animation:
+                            "dropdownPop .18s cubic-bezier(.2,.9,.25,1)",
+                          boxShadow: theme.isDark
+                            ? "0 20px 60px rgba(6,4,20,0.8), 0 0 40px rgba(139,92,246,0.15)"
+                            : "0 20px 60px rgba(10,12,30,0.15), 0 0 40px rgba(139,92,246,0.1)",
+                          border: theme.isDark
+                            ? "1px solid rgba(139,92,246,0.15)"
+                            : "1px solid rgba(139,92,246,0.12)",
+                          background: theme.isDark
+                            ? "linear-gradient(135deg, rgba(20,20,40,0.96) 0%, rgba(25,15,50,0.94) 100%)"
+                            : "linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(248,247,255,0.96) 100%)",
+                          WebkitBackdropFilter: "blur(12px)",
+                          backdropFilter: "blur(12px)",
                         }}
                       >
-                        <div className={`px-4 py-4 border-b ${theme.isDark ? 'border-purple-500/15' : 'border-gray-100'}`}>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 ring-2 ring-purple-400/20">
-                              <span className="text-white text-base font-bold">
-                                {auth.user?.name?.charAt(0).toUpperCase()}
-                              </span>
+                        <div
+                          className={`px-5 py-5 bg-gradient-to-br ${theme.isDark ? "from-purple-950/30 to-transparent" : "from-purple-100/40 to-transparent"}`}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <div
+                                className={`absolute inset-0 rounded-full ${theme.isDark ? "bg-purple-600/30" : "bg-purple-400/20"} blur-lg`}
+                              />
+                              <div
+                                className={`w-16 h-16 bg-gradient-to-br from-purple-500 via-purple-400 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0 ring-2 ${theme.isDark ? "ring-purple-400/40" : "ring-purple-300/50"} relative z-10 shadow-lg`}
+                              >
+                                <span className="text-white text-xl font-bold">
+                                  {auth.user?.name?.charAt(0).toUpperCase()}
+                                </span>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <p className={`font-bold text-sm truncate ${theme.isDark ? 'text-white' : 'text-gray-900'}`}>
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={`font-bold text-sm truncate ${theme.isDark ? "text-white" : "text-gray-900"}`}
+                              >
                                 {auth.user?.name}
                               </p>
-                              <p className={`text-xs truncate mt-0.5 ${theme.isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                              <p
+                                className={`text-xs truncate mt-1 ${theme.isDark ? "text-gray-400" : "text-gray-600"}`}
+                              >
                                 {auth.user?.email}
                               </p>
+                              <div className="mt-2.5">
+                                <span
+                                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                    theme.isDark
+                                      ? "bg-gradient-to-r from-purple-600/50 to-blue-600/50 text-purple-100"
+                                      : "bg-gradient-to-r from-purple-200/60 to-blue-200/60 text-purple-800"
+                                  }`}
+                                >
+                                  {auth.user?.role
+                                    ? auth.user.role.toUpperCase()
+                                    : "CUSTOMER"}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
-                        <div className="p-1.5">
+                        <div
+                          className={`h-0.5 bg-gradient-to-r ${theme.isDark ? "from-transparent via-purple-500/30 to-transparent" : "from-transparent via-purple-300/40 to-transparent"}`}
+                        />
+                        <div className="px-3 py-2.5 space-y-2">
+                          <button
+                            onClick={() => {
+                              navigate("/profile");
+                              setUserMenuOpen(false);
+                            }}
+                            className={`group w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl transition-all transform ${
+                              theme.isDark
+                                ? "text-gray-100 hover:bg-gradient-to-r hover:from-purple-500/20 hover:to-blue-500/20 hover:shadow-lg hover:shadow-purple-500/10"
+                                : "text-gray-800 hover:bg-gradient-to-r hover:from-purple-100/60 hover:to-blue-100/40"
+                            } hover:scale-105 active:scale-95`}
+                          >
+                            <User className="w-4 h-4 text-purple-500 group-hover:text-purple-400 transition-colors flex-shrink-0" />
+                            <span>Thông tin cá nhân</span>
+                          </button>
+
+                          {(auth.user?.role === "admin" ||
+                            auth.user?.role === "staff" ||
+                            auth.user?.role === "manager") && (
+                            <button
+                              onClick={() => {
+                                if (auth.user?.role === "admin")
+                                  navigate("/admin");
+                                else if (auth.user?.role === "staff")
+                                  navigate("/staff");
+                                else if (auth.user?.role === "manager")
+                                  navigate("/manager");
+                                setUserMenuOpen(false);
+                              }}
+                              className={`group w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl transition-all transform ${
+                                theme.isDark
+                                  ? "text-gray-100 hover:bg-gradient-to-r hover:from-blue-500/20 hover:to-cyan-500/20 hover:shadow-lg hover:shadow-blue-500/10"
+                                  : "text-gray-800 hover:bg-gradient-to-r hover:from-blue-100/60 hover:to-cyan-100/40"
+                              } hover:scale-105 active:scale-95`}
+                            >
+                              <Settings className="w-4 h-4 text-blue-500 group-hover:text-blue-400 transition-colors flex-shrink-0" />
+                              <span>Bảng điều khiển</span>
+                            </button>
+                          )}
+
                           <button
                             onClick={() => {
                               auth.logout();
                               setUserMenuOpen(false);
                             }}
-                            className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-sm rounded-xl transition-colors ${
+                            className={`group w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-2xl transition-all transform ${
                               theme.isDark
-                                ? 'text-red-400 hover:bg-red-500/10'
-                                : 'text-red-500 hover:bg-red-50'
-                            }`}
+                                ? "text-red-400/90 hover:bg-gradient-to-r hover:from-red-500/20 hover:to-orange-500/20 hover:shadow-lg hover:shadow-red-500/10"
+                                : "text-red-600 hover:bg-gradient-to-r hover:from-red-100/60 hover:to-orange-100/40"
+                            } hover:scale-105 active:scale-95`}
                           >
-                            <LogOut className="w-4 h-4" />
-                            Đăng xuất
+                            <LogOut className="w-4 h-4 text-red-500 transition-colors flex-shrink-0" />
+                            <span>Đăng xuất</span>
                           </button>
                         </div>
                       </div>
                       <style>{`
-                        @keyframes dropdownIn { from { opacity: 0; transform: translateY(-8px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+                        @keyframes dropdownPop { from { opacity: 0; transform: translateY(-8px) scale(0.95); filter: blur(4px); } to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+                        #userDropdown::before { 
+                          content: ""; 
+                          position: absolute; 
+                          top: -8px; 
+                          right: 22px; 
+                          width: 15px; 
+                          height: 15px; 
+                          background: ${theme.isDark ? "linear-gradient(135deg, rgba(20,20,40,0.96), rgba(25,15,50,0.94))" : "linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,247,255,0.96))"};
+                          transform: rotate(45deg); 
+                          filter: blur(8px); 
+                          opacity: 0.95; 
+                          z-index: 0;
+                        }
+                        #userDropdown::after { 
+                          content: ""; 
+                          position: absolute; 
+                          top: -9px; 
+                          right: 22px; 
+                          width: 15px; 
+                          height: 15px; 
+                          background: ${theme.isDark ? "linear-gradient(180deg, rgba(139,92,246,0.2), rgba(59,130,246,0.12))" : "linear-gradient(180deg, rgba(139,92,246,0.15), rgba(59,130,246,0.1))"};
+                          transform: rotate(45deg); 
+                          border-radius: 2px; 
+                          z-index: 1; 
+                          pointer-events: none;
+                        }
+                        header { z-index: 50; }
+                        #userDropdown { z-index: 60; }
                       `}</style>
                     </>
                   )}
