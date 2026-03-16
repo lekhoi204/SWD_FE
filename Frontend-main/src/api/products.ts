@@ -54,11 +54,19 @@ function mapBackendProduct(bp: BackendProduct): Product {
     SSD: "storage",
     HDD: "storage",
     PSU: "psu",
+    PSD: "psu",
     Case: "case",
+    "Vỏ máy tính": "case",
     Cooling: "cooling",
+    "Tản nhiệt CPU": "cooling",
+    "Quạt tản nhiệt": "cooling",
     Monitor: "monitor",
+    "Màn hình": "monitor",
     Keyboard: "keyboard",
+    "Bàn phím": "keyboard",
     Mouse: "mouse",
+    Chuột: "mouse",
+    "PC Bộ": "pc",
     // Vietnamese labels (backend may store Vietnamese names)
     "Bộ vi xử lý (CPU)": "cpu",
     "Bộ vi xử lý": "cpu",
@@ -77,10 +85,8 @@ function mapBackendProduct(bp: BackendProduct): Product {
     "Vỏ case": "case",
     "Hệ thống tản nhiệt": "cooling",
     "Tản nhiệt": "cooling",
-    "Màn hình": "monitor",
-    "Bàn phím": "keyboard",
+
     "Chuột máy tính": "mouse",
-    Chuột: "mouse",
     Laptop: "laptop",
     "PC Đồng bộ": "pc",
     "Máy tính để bàn": "pc",
@@ -96,9 +102,19 @@ function mapBackendProduct(bp: BackendProduct): Product {
     pcs: "pc",
   };
 
-  const category = bp.category_name
-    ? categoryMap[bp.category_name] || "pc"
-    : "pc";
+  const rawName = (bp.category_name || "").trim();
+  // perform a case-insensitive lookup for category names
+  const lookupKey = rawName.toLowerCase();
+  const categoryMapLower: Record<string, ProductCategory> = Object.keys(
+    categoryMap,
+  ).reduce(
+    (acc, k) => {
+      acc[k.toLowerCase()] = categoryMap[k];
+      return acc;
+    },
+    {} as Record<string, ProductCategory>,
+  );
+  const category = lookupKey ? categoryMapLower[lookupKey] || "pc" : "pc";
 
   return {
     id: String(bp.product_id),
@@ -109,7 +125,9 @@ function mapBackendProduct(bp: BackendProduct): Product {
     price: bp.price,
     image: bp.image_url || "https://via.placeholder.com/400",
     description: bp.description || `${bp.brand || ""} ${bp.name}`.trim(),
-    specs: bp.brand ? { Brand: bp.brand } : {},
+    specs: bp.brand
+      ? ({ Brand: String(bp.brand) } as Record<string, string>)
+      : {},
     stock: bp.stock ?? bp.stock_quantity ?? 0,
   };
 }

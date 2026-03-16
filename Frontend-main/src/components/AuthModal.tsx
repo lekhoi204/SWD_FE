@@ -10,7 +10,6 @@ export function AuthModal() {
   const { authModal, closeModal, openLogin, openRegister, login, register } =
     useAuth();
   const { isDark } = useTheme();
-  const navigate = useNavigate();
 
   if (!authModal) return null;
 
@@ -249,6 +248,7 @@ function LoginForm({
   onLogin: (email: string, password: string) => Promise<boolean>;
   onSwitch: () => void;
 }) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);

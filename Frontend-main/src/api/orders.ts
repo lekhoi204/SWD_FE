@@ -1,27 +1,12 @@
 import { apiClient } from "./client";
+import type { OrderDetail as SharedOrderDetail } from "@/types";
 
-type CreateOrderRequest = {
+export type CreateOrderRequest = {
   cart_item_ids: number[];
   shipping_address: string;
   phone: string;
   promotion_code?: string | null;
   payment_method: "QR_FULL" | "QR_INSTALLMENT" | "COD";
-};
-
-type OrderDetail = {
-  order_id: number;
-  user_id: number;
-  promotion_id: number | null;
-  order_date: string;
-  status: string;
-  total_amount: number;
-  shipping_address: string | null;
-  payment_type: string;
-  payment_method: string | null;
-  user_name?: string;
-  user_email?: string;
-  user_phone?: string | null;
-  promotion_code?: string | null;
 };
 
 type CreateOrderResponse = {
@@ -53,28 +38,37 @@ export async function createOrderApi(
   return res.data;
 }
 
-export async function getOrdersApi(): Promise<OrderDetail[]> {
-  const res = await apiClient<{ success: boolean; data: OrderDetail[] }>(
-    "/orders",
+export async function getMyOrdersApi(): Promise<SharedOrderDetail[]> {
+  const res = await apiClient<{ success: boolean; data: SharedOrderDetail[] }>(
+    "/orders/me",
+  );
+  return res.data || [];
+}
+
+export async function getOrderByIdApi(
+  orderId: string,
+): Promise<SharedOrderDetail> {
+  const res = await apiClient<{ success: boolean; data: SharedOrderDetail }>(
+    `/orders/${orderId}`,
   );
   return res.data;
 }
 
-export async function getOrderByIdApi(id: string): Promise<OrderDetail> {
-  const res = await apiClient<{ success: boolean; data: OrderDetail }>(
-    `/orders/${id}`,
+export async function getOrdersApi(): Promise<SharedOrderDetail[]> {
+  const res = await apiClient<{ success: boolean; data: SharedOrderDetail[] }>(
+    "/orders",
   );
   return res.data;
 }
 
 export async function updateOrderApi(
   id: string,
-  data: Partial<OrderDetail>,
-): Promise<OrderDetail> {
+  data: Partial<SharedOrderDetail>,
+): Promise<SharedOrderDetail> {
   const res = await apiClient<{
     success: boolean;
     message: string;
-    data: OrderDetail;
+    data: SharedOrderDetail;
   }>(`/orders/${id}`, {
     method: "PUT",
     body: data,

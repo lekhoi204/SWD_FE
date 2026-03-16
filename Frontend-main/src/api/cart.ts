@@ -89,3 +89,13 @@ export async function removeCartItemApi(cartId: string): Promise<void> {
 export async function clearCartApi(userId: string): Promise<void> {
   await apiClient(`/cart/${userId}/clear`, { method: "DELETE" });
 }
+
+export async function getCartTotalApi(
+  userId: string,
+): Promise<{ itemCount: number; totalQuantity: number; totalPrice: number }> {
+  const res = await apiClient<{
+    success: boolean;
+    data: { itemCount: number; totalQuantity: number; totalPrice: number };
+  }>(`/cart/${userId}/total`);
+  return res.data;
+}
