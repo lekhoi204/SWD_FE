@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useTheme } from "@/context/ThemeContext";
 import { useCart } from "@/context/CartContext";
 import { getProductByIdApi } from "@/api/products";
-import { products } from "@/data/products";
+import { getSpecsByProductIdApi, type Specification } from "@/api/specifications";
 import { CATEGORY_LABELS } from "@/constants/categories";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import type { Product } from "@/types";
@@ -27,6 +27,7 @@ export function ProductDetailPage() {
   const [selectedPaymentPlan, setSelectedPaymentPlan] =
     useState<string>("full");
   const [product, setProduct] = useState<Product | null>(null);
+  const [specifications, setSpecifications] = useState<Specification[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -39,9 +40,13 @@ export function ProductDetailPage() {
     (async () => {
       try {
         setLoading(true);
-        const data = await getProductByIdApi(id);
+        const [data, specs] = await Promise.all([
+          getProductByIdApi(id),
+          getSpecsByProductIdApi(id).catch(() => []),
+        ]);
         if (mounted) {
           setProduct(data);
+          setSpecifications(specs);
         }
       } catch (err) {
         console.error("Failed to fetch product:", err);
@@ -132,22 +137,24 @@ export function ProductDetailPage() {
             </p>
           </div>
 
-          <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6">
-            <h3 className="text-xl font-bold mb-4 text-purple-400">
-              Thông số kỹ thuật
-            </h3>
-            <div className="space-y-3">
-              {Object.entries(product.specs).map(([key, value]) => (
-                <div
-                  key={key}
-                  className="flex justify-between border-b border-purple-500/20 pb-2"
-                >
-                  <span className="text-gray-400">{key}</span>
-                  <span className="font-semibold text-right">{value}</span>
-                </div>
-              ))}
+          {specifications.length > 0 && (
+            <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6">
+              <h3 className="text-xl font-bold mb-4 text-purple-400">
+                Thông số kỹ thuật
+              </h3>
+              <div className="space-y-3">
+                {specifications.map((spec) => (
+                  <div
+                    key={spec.spec_id}
+                    className="flex justify-between border-b border-purple-500/20 pb-2"
+                  >
+                    <span className="text-gray-400">{spec.spec_name}</span>
+                    <span className="font-semibold text-right">{spec.spec_value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6">
             <h3 className="text-xl font-bold mb-4 text-purple-400">

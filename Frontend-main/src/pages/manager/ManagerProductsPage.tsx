@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Pencil, Trash2, Search, X, Upload, ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, Upload, ImageIcon, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
 import { getProductsApi } from '@/api/products';
 import { getCategoriesApi, type Category } from '@/api/categories';
+import { getSpecsByProductIdApi, createSpecApi, updateSpecApi, deleteSpecApi, type Specification } from '@/api/specifications';
 import { apiClient } from '@/api/client';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { Product } from '@/types';
@@ -26,6 +27,15 @@ export function ManagerProductsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Specs modal state
+  const [specsProduct, setSpecsProduct] = useState<Product | null>(null);
+  const [specs, setSpecs] = useState<Specification[]>([]);
+  const [specsLoading, setSpecsLoading] = useState(false);
+  const [newSpec, setNewSpec] = useState({ spec_name: '', spec_value: '' });
+  const [editSpec, setEditSpec] = useState<Specification | null>(null);
+  const [editSpecForm, setEditSpecForm] = useState({ spec_name: '', spec_value: '' });
+  const [specSaving, setSpecSaving] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -112,6 +122,51 @@ export function ManagerProductsPage() {
     finally { setDeleting(false); }
   };
 
+  const openSpecs = async (p: Product) => {
+    setSpecsProduct(p);
+    setSpecsLoading(true);
+    setNewSpec({ spec_name: '', spec_value: '' });
+    setEditSpec(null);
+    try {
+      setSpecs(await getSpecsByProductIdApi(p.id));
+    } catch (err) { console.error(err); setSpecs([]); }
+    finally { setSpecsLoading(false); }
+  };
+
+  const closeSpecs = () => { setSpecsProduct(null); setSpecs([]); setEditSpec(null); };
+
+  const handleAddSpec = async () => {
+    if (!newSpec.spec_name || !newSpec.spec_value || !specsProduct) return;
+    setSpecSaving(true);
+    try {
+      const created = await createSpecApi({ product_id: Number(specsProduct.id), spec_name: newSpec.spec_name, spec_value: newSpec.spec_value });
+      setSpecs([...specs, created]);
+      setNewSpec({ spec_name: '', spec_value: '' });
+      toast.success('Thêm thông số thành công');
+    } catch (err: any) { toast.error(err?.message || 'Thêm thất bại'); }
+    finally { setSpecSaving(false); }
+  };
+
+  const handleUpdateSpec = async () => {
+    if (!editSpec) return;
+    setSpecSaving(true);
+    try {
+      const updated = await updateSpecApi(editSpec.spec_id, { spec_name: editSpecForm.spec_name, spec_value: editSpecForm.spec_value });
+      setSpecs(specs.map(s => s.spec_id === editSpec.spec_id ? updated : s));
+      setEditSpec(null);
+      toast.success('Cập nhật thông số thành công');
+    } catch (err: any) { toast.error(err?.message || 'Cập nhật thất bại'); }
+    finally { setSpecSaving(false); }
+  };
+
+  const handleDeleteSpec = async (specId: number) => {
+    try {
+      await deleteSpecApi(specId);
+      setSpecs(specs.filter(s => s.spec_id !== specId));
+      toast.success('Xóa thông số thành công');
+    } catch (err: any) { toast.error(err?.message || 'Xóa thất bại'); }
+  };
+
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '12px 14px', borderRadius: '10px',
     border: '1px solid rgba(245,158,11,0.2)', background: 'rgba(255,255,255,0.05)',
@@ -180,6 +235,9 @@ export function ManagerProductsPage() {
                   <td style={{ padding: '14px 20px', fontSize: '14px', color: p.stock < 10 ? '#ef4444' : '#d1d5db' }}>{p.stock}</td>
                   <td style={{ padding: '14px 20px' }}>
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => openSpecs(p)} title="Thông số kỹ thuật" style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(16,185,129,0.15)', color: '#34d399', display: 'flex' }}>
+                        <ListChecks style={{ width: 16, height: 16 }} />
+                      </button>
                       <button onClick={() => openEdit(p)} style={{ padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', display: 'flex' }}>
                         <Pencil style={{ width: 16, height: 16 }} />
                       </button>
@@ -295,6 +353,93 @@ export function ManagerProductsPage() {
                 {saving ? 'Đang lưu...' : modal === 'create' ? 'Thêm' : 'Lưu thay đổi'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Specs Modal */}
+      {specsProduct && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={closeSpecs} />
+          <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '600px', background: 'linear-gradient(160deg, #1a1a0e, #0f0e17)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '20px', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', margin: 0 }}>Thông số kỹ thuật</h2>
+                <p style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>{specsProduct.name}</p>
+              </div>
+              <button onClick={closeSpecs} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex' }}><X style={{ width: 20, height: 20 }} /></button>
+            </div>
+
+            {specsLoading ? (
+              <div style={{ textAlign: 'center', padding: '32px', color: '#9ca3af' }}>Đang tải...</div>
+            ) : (
+              <>
+                {/* Specs List */}
+                {specs.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                    {specs.map(s => (
+                      <div key={s.spec_id} style={{
+                        display: 'flex', alignItems: 'center', gap: '12px',
+                        padding: '12px 16px', borderRadius: '12px',
+                        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(16,185,129,0.1)',
+                      }}>
+                        {editSpec?.spec_id === s.spec_id ? (
+                          <>
+                            <input value={editSpecForm.spec_name} onChange={(e) => setEditSpecForm({ ...editSpecForm, spec_name: e.target.value })} style={{ ...inputStyle, flex: 1, padding: '8px 10px', fontSize: '13px' }} />
+                            <input value={editSpecForm.spec_value} onChange={(e) => setEditSpecForm({ ...editSpecForm, spec_value: e.target.value })} style={{ ...inputStyle, flex: 1, padding: '8px 10px', fontSize: '13px' }} />
+                            <button onClick={handleUpdateSpec} disabled={specSaving} style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: 'rgba(16,185,129,0.2)', color: '#34d399', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                              {specSaving ? '...' : 'Lưu'}
+                            </button>
+                            <button onClick={() => setEditSpec(null)} style={{ padding: '6px 10px', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.05)', color: '#9ca3af', fontSize: '12px', cursor: 'pointer' }}>Hủy</button>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#d1d5db', fontWeight: 500 }}>{s.spec_name}</span>
+                            <span style={{ flex: 1, fontSize: '14px', color: '#10b981', fontWeight: 600 }}>{s.spec_value}</span>
+                            <button onClick={() => { setEditSpec(s); setEditSpecForm({ spec_name: s.spec_name, spec_value: s.spec_value }); }} style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'rgba(59,130,246,0.15)', color: '#60a5fa', cursor: 'pointer', display: 'flex' }}>
+                              <Pencil style={{ width: 14, height: 14 }} />
+                            </button>
+                            <button onClick={() => handleDeleteSpec(s.spec_id)} style={{ padding: '6px', borderRadius: '6px', border: 'none', background: 'rgba(239,68,68,0.15)', color: '#f87171', cursor: 'pointer', display: 'flex' }}>
+                              <Trash2 style={{ width: 14, height: 14 }} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '24px', color: '#6b7280', fontSize: '14px', marginBottom: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px' }}>
+                    Chưa có thông số kỹ thuật nào
+                  </div>
+                )}
+
+                {/* Add New Spec */}
+                <div style={{ borderTop: '1px solid rgba(16,185,129,0.1)', paddingTop: '16px' }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#9ca3af', marginBottom: '10px' }}>Thêm thông số mới</p>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Tên thông số</label>
+                      <input value={newSpec.spec_name} onChange={(e) => setNewSpec({ ...newSpec, spec_name: e.target.value })} style={{ ...inputStyle, padding: '10px 12px', fontSize: '13px', border: '1px solid rgba(16,185,129,0.2)' }} placeholder="VD: Core Clock" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Giá trị</label>
+                      <input value={newSpec.spec_value} onChange={(e) => setNewSpec({ ...newSpec, spec_value: e.target.value })} style={{ ...inputStyle, padding: '10px 12px', fontSize: '13px', border: '1px solid rgba(16,185,129,0.2)' }} placeholder="VD: 2.52 GHz"
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleAddSpec(); }}
+                      />
+                    </div>
+                    <button onClick={handleAddSpec} disabled={specSaving || !newSpec.spec_name || !newSpec.spec_value} style={{
+                      padding: '10px 20px', borderRadius: '10px', border: 'none',
+                      background: newSpec.spec_name && newSpec.spec_value ? 'linear-gradient(135deg, #10b981, #059669)' : 'rgba(255,255,255,0.05)',
+                      color: newSpec.spec_name && newSpec.spec_value ? '#fff' : '#6b7280',
+                      fontSize: '13px', fontWeight: 600, cursor: newSpec.spec_name && newSpec.spec_value ? 'pointer' : 'not-allowed',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      <Plus style={{ width: 16, height: 16 }} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
