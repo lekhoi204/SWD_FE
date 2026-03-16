@@ -51,11 +51,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true);
       const items = await getCartApi(String(user.user_id));
-      const itemsWithId: CartItemWithId[] = (items as any[]).map((item: any) => {
-        const cartItemId = item.cart_item_id || Date.now();
+      const itemsWithId: CartItemWithId[] = (items as any[]).map((item: any, index: number) => {
+        // Backend must return cart_item_id (or cartItemId/id/item_id) for remove/update to work
+        const cartItemId = item.cart_item_id ?? item.cartItemId ?? item.id ?? item.item_id;
+        const id = cartItemId != null ? Number(cartItemId) : Date.now() + index;
         return {
           ...item,
-          cart_item_id: cartItemId,
+          cart_item_id: id,
         };
       });
       setCart(itemsWithId);
