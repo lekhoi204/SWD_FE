@@ -47,10 +47,6 @@ export async function updateSpecApi(
     method: "PUT",
     body: data,
   });
-  const res = await apiClient<MutateSpecResponse>(
-    `/specifications/${specId}`,
-    { method: "PUT", body: data },
-  );
   return res.data;
 }
 

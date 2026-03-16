@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Trash2, RefreshCw, Send, ClipboardList, X, Clock, CheckCircle, XCircle, Eye } from 'lucide-react';
+import { Plus, Trash2, RefreshCw, Send, ClipboardList, X, Clock, CheckCircle, XCircle, Eye, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTheme } from '@/context/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { products } from '@/data/products';
+import { getProductsApi } from '@/api/products';
 import { PC_BUILDER_CATEGORIES, PC_BUILDER_LABELS } from '@/constants/categories';
 import { Breadcrumb } from '@/components/Breadcrumb';
 import type { Product } from '@/types';
@@ -73,6 +73,10 @@ export function PCBuilderPage() {
   const { isDark } = useTheme();
   const { addToCart } = useCart();
   const { isLoggedIn, openLogin } = useAuth();
+
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+
   const [budget, setBudget] = useState(30000000);
   const [buildComponents, setBuildComponents] = useState<BuildComponent[]>(
     PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null }))
@@ -82,6 +86,23 @@ export function PCBuilderPage() {
   const [requestForm, setRequestForm] = useState({ purpose: 'Gaming', note: '' });
   const [myRequests, setMyRequests] = useState<UserRequest[]>(MOCK_USER_REQUESTS);
   const [viewRequest, setViewRequest] = useState<UserRequest | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setProductsLoading(true);
+        const prods = await getProductsApi();
+        if (mounted) setAllProducts(prods);
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        if (mounted) toast.error('Không thể tải danh sách sản phẩm');
+      } finally {
+        if (mounted) setProductsLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const submitRequest = () => {
     if (!requestForm.purpose) { toast.error('Vui lòng chọn mục đích sử dụng'); return; }
@@ -126,12 +147,16 @@ export function PCBuilderPage() {
   };
 
   const autoBuild = () => {
+    if (allProducts.length === 0) {
+      toast.error('Chưa có dữ liệu sản phẩm');
+      return;
+    }
     const newBuild: BuildComponent[] = [];
     let remaining = budget;
     for (const comp of buildComponents) {
       const categoryBudget = budget * (ALLOCATIONS[comp.category] ?? 0);
-      const available = products
-        .filter((p) => p.category === comp.category && p.price <= remaining)
+      const available = allProducts
+        .filter((p) => p.category === comp.category && p.price <= remaining && p.stock > 0)
         .sort(
           (a, b) =>
             Math.abs(a.price - categoryBudget) - Math.abs(b.price - categoryBudget)
@@ -141,7 +166,12 @@ export function PCBuilderPage() {
       newBuild.push({ category: comp.category, product: selected });
     }
     setBuildComponents(newBuild);
-    toast.success('Đã tự động build PC theo ngân sách!');
+    const selectedCount = newBuild.filter(c => c.product).length;
+    if (selectedCount === 0) {
+      toast.error('Không tìm được linh kiện phù hợp ngân sách');
+    } else {
+      toast.success(`Đã tự động chọn ${selectedCount} linh kiện theo ngân sách!`);
+    }
   };
 
   const resetBuild = () => {
@@ -249,10 +279,11 @@ export function PCBuilderPage() {
           <div className="flex gap-4">
             <button
               onClick={autoBuild}
-              className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-white"
+              disabled={productsLoading}
+              className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-white disabled:opacity-50 disabled:hover:scale-100"
             >
               <RefreshCw className="w-5 h-5" />
-              Tự động build
+              {productsLoading ? 'Đang tải...' : 'Tự động build'}
             </button>
             <button
               onClick={resetBuild}
@@ -344,10 +375,17 @@ export function PCBuilderPage() {
         </p>
       </div>
 
+      {/* Component Selection */}
+      {productsLoading ? (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Loader2 className={`w-10 h-10 animate-spin ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+          <p className={`mt-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Đang tải danh sách linh kiện...</p>
+        </div>
+      ) : (
       <div className="space-y-6">
         {buildComponents.map((comp) => {
-          const available = products
-            .filter((p) => p.category === comp.category)
+          const available = allProducts
+            .filter((p) => p.category === comp.category && p.stock > 0)
             .sort((a, b) => a.price - b.price);
           return (
             <div
@@ -359,13 +397,18 @@ export function PCBuilderPage() {
               }`}
             >
               <div className="flex items-center justify-between mb-4">
-                <h3
-                  className={`text-xl font-bold ${
-                    isDark ? 'text-purple-400' : 'text-purple-600'
-                  }`}
-                >
-                  {PC_BUILDER_LABELS[comp.category]}
-                </h3>
+                <div className="flex items-center gap-3">
+                  <h3
+                    className={`text-xl font-bold ${
+                      isDark ? 'text-purple-400' : 'text-purple-600'
+                    }`}
+                  >
+                    {PC_BUILDER_LABELS[comp.category]}
+                  </h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-100 text-gray-500'}`}>
+                    {available.length} sản phẩm
+                  </span>
+                </div>
                 {comp.product && (
                   <button
                     onClick={() => removeProduct(comp.category)}
@@ -404,7 +447,7 @@ export function PCBuilderPage() {
                     </div>
                   </div>
                 </div>
-              ) : (
+              ) : available.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {available.map((product) => (
                     <button
@@ -420,7 +463,7 @@ export function PCBuilderPage() {
                         <img
                           src={product.image}
                           alt={product.name}
-                          className="w-16 h-16 object-cover rounded-lg"
+                          className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
                           <h4
@@ -435,16 +478,26 @@ export function PCBuilderPage() {
                           <div className="text-lg font-bold text-purple-400">
                             {product.price.toLocaleString('vi-VN')}₫
                           </div>
+                          {product.stock < 10 && (
+                            <span className="text-xs text-amber-400">Còn {product.stock} sản phẩm</span>
+                          )}
                         </div>
                       </div>
                     </button>
                   ))}
+                </div>
+              ) : (
+                <div className={`text-center py-8 rounded-lg ${isDark ? 'bg-slate-900/30' : 'bg-gray-50'}`}>
+                  <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    Chưa có sản phẩm nào trong danh mục này
+                  </p>
                 </div>
               )}
             </div>
           );
         })}
       </div>
+      )}
       </>) : (
         /* My Requests Tab */
         <div>

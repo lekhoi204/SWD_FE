@@ -54,11 +54,19 @@ function mapBackendProduct(bp: BackendProduct): Product {
     SSD: "storage",
     HDD: "storage",
     PSU: "psu",
+    PSD: "psu",
     Case: "case",
+    "Vỏ máy tính": "case",
     Cooling: "cooling",
+    "Tản nhiệt CPU": "cooling",
+    "Quạt tản nhiệt": "cooling",
     Monitor: "monitor",
+    "Màn hình": "monitor",
     Keyboard: "keyboard",
+    "Bàn phím": "keyboard",
     Mouse: "mouse",
+    "Chuột": "mouse",
+    "PC Bộ": "pc",
     // Vietnamese labels (backend may store Vietnamese names)
     "Bộ vi xử lý (CPU)": "cpu",
     "Bộ vi xử lý": "cpu",
@@ -96,8 +104,9 @@ function mapBackendProduct(bp: BackendProduct): Product {
     pcs: "pc",
   };
 
-  const category = bp.category_name
-    ? categoryMap[bp.category_name] || "pc"
+  const rawName = bp.category_name?.trim() || "";
+  const category = rawName
+    ? categoryMap[rawName] || "pc"
     : "pc";
 
   return {
