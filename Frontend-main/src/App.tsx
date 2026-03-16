@@ -13,6 +13,7 @@ import {
 import ProfilePage from "@/pages/ProfilePage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
+import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { StaffLayout } from "@/layouts/StaffLayout";
 import { StaffDashboardPage } from "@/pages/staff/StaffDashboardPage";
 import { StaffRequestsPage } from "@/pages/staff/StaffRequestsPage";
@@ -46,6 +47,7 @@ export default function App() {
               <Route path="admin" element={<RequireRole roles={["admin"]}><AdminLayout /></RequireRole>}>
                 <Route index element={<AdminDashboardPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
+                <Route path="orders" element={<AdminOrdersPage />} />
               </Route>
 
               <Route path="staff" element={<RequireRole roles={["staff", "admin"]}><StaffLayout /></RequireRole>}>

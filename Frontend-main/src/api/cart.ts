@@ -40,20 +40,28 @@ function mapBackendProductToProduct(bp: any): Product {
   };
 }
 
-function mapBackendCartItem(item: any): CartItem {
+function mapBackendCartItem(item: any): CartItem & { cart_item_id?: number } {
   // backend includes product fields (product_id, product_name, product_price, image_url, stock_quantity)
+  // cart_item_id may be: cart_item_id, cartItemId, id, item_id
   const product = mapBackendProductToProduct(item);
+  const cartItemId =
+    item.cart_item_id ?? item.cartItemId ?? item.id ?? item.item_id;
   return {
     product,
     quantity: item.quantity ?? 1,
+    ...(cartItemId != null && { cart_item_id: Number(cartItemId) }),
   };
 }
 
-export async function getCartApi(userId: string): Promise<CartItem[]> {
-  const res = await apiClient<{ success: boolean; data: { items: any[] } }>(
-    `/cart/${userId}`,
-  );
-  return (res.data.items || []).map(mapBackendCartItem);
+export async function getCartApi(userId: string): Promise<(CartItem & { cart_item_id?: number })[]> {
+  const res = await apiClient<{
+    success: boolean;
+    data: { items?: any[] } | any[];
+  }>(`/cart/${userId}`);
+  const rawItems = Array.isArray(res.data)
+    ? res.data
+    : (res.data?.items ?? []);
+  return rawItems.map(mapBackendCartItem);
 }
 
 export async function addToCartApi(
