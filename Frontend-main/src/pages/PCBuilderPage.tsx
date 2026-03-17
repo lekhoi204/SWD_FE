@@ -40,7 +40,7 @@ type UserRequest = {
   purpose: string;
   note: string;
   buildItems: { category: string; name: string; price: number }[];
-  status: "pending" | "accepted" | "rejected" | "completed";
+  status: 'pending' | 'accepted' | 'rejected' | 'completed';
   rejectReason?: string;
   staffBuild?: { category: string; name: string; price: number }[];
   createdAt: string;
@@ -55,14 +55,11 @@ const PURPOSE_OPTIONS = [
   "Khác",
 ];
 
-const STATUS_INFO: Record<
-  string,
-  { label: string; color: string; icon: typeof Clock }
-> = {
-  pending: { label: "Chờ duyệt", color: "#f59e0b", icon: Clock },
-  accepted: { label: "Đang xử lý", color: "#3b82f6", icon: CheckCircle },
-  rejected: { label: "Từ chối", color: "#ef4444", icon: XCircle },
-  completed: { label: "Hoàn thành", color: "#8b5cf6", icon: CheckCircle },
+const STATUS_INFO: Record<string, { label: string; color: string; icon: typeof Clock }> = {
+  pending: { label: 'Chờ duyệt', color: '#f59e0b', icon: Clock },
+  accepted: { label: 'Đang xử lý', color: '#3b82f6', icon: CheckCircle },
+  rejected: { label: 'Từ chối', color: '#ef4444', icon: XCircle },
+  completed: { label: 'Hoàn thành', color: '#8b5cf6', icon: CheckCircle },
 };
 
 type BuildComponent = {
@@ -71,13 +68,7 @@ type BuildComponent = {
 };
 
 const ALLOCATIONS: Record<string, number> = {
-  cpu: 0.25,
-  gpu: 0.35,
-  motherboard: 0.15,
-  ram: 0.1,
-  storage: 0.08,
-  psu: 0.05,
-  case: 0.02,
+  cpu: 0.25, gpu: 0.35, motherboard: 0.15, ram: 0.1, storage: 0.08, psu: 0.05, case: 0.02,
 };
 
 export function PCBuilderPage() {
@@ -90,9 +81,9 @@ export function PCBuilderPage() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [budget, setBudget] = useState(30000000);
   const [buildComponents, setBuildComponents] = useState<BuildComponent[]>(
-    PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null })),
+    PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null }))
   );
-  const [activeTab, setActiveTab] = useState<"build" | "requests">("build");
+  const [activeTab, setActiveTab] = useState<'build' | 'requests'>('build');
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [requestForm, setRequestForm] = useState({
     purpose: "Gaming",
@@ -341,26 +332,15 @@ export function PCBuilderPage() {
     }
   };
 
-  const totalPrice = buildComponents.reduce(
-    (sum, comp) => sum + (comp.product?.price ?? 0),
-    0,
-  );
+  const totalPrice = buildComponents.reduce((sum, comp) => sum + (comp.product?.price ?? 0), 0);
   const remainingBudget = budget - totalPrice;
 
   const selectProduct = (category: string, product: Product) => {
-    setBuildComponents((prev) =>
-      prev.map((comp) =>
-        comp.category === category ? { ...comp, product } : comp,
-      ),
-    );
+    setBuildComponents((prev) => prev.map((comp) => comp.category === category ? { ...comp, product } : comp));
   };
 
   const removeProduct = (category: string) => {
-    setBuildComponents((prev) =>
-      prev.map((comp) =>
-        comp.category === category ? { ...comp, product: null } : comp,
-      ),
-    );
+    setBuildComponents((prev) => prev.map((comp) => comp.category === category ? { ...comp, product: null } : comp));
   };
 
   const autoBuild = () => {
@@ -397,22 +377,15 @@ export function PCBuilderPage() {
   };
 
   const resetBuild = () => {
-    setBuildComponents((prev) =>
-      prev.map((comp) => ({ ...comp, product: null })),
-    );
-    toast.info("Đã xóa cấu hình build");
+    setBuildComponents((prev) => prev.map((comp) => ({ ...comp, product: null })));
+    toast.info('Đã xóa cấu hình build');
   };
 
   const addBuildToCart = () => {
     const selected = buildComponents
-      .filter(
-        (c): c is BuildComponent & { product: Product } => c.product !== null,
-      )
+      .filter((c): c is BuildComponent & { product: Product } => c.product !== null)
       .map((c) => c.product);
-    if (selected.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một linh kiện");
-      return;
-    }
+    if (selected.length === 0) { toast.error('Vui lòng chọn ít nhất một linh kiện'); return; }
     selected.forEach((p) => addToCart(p, 1));
     toast.success(`Đã thêm ${selected.length} linh kiện vào giỏ hàng!`);
   };
@@ -618,7 +591,16 @@ export function PCBuilderPage() {
                   Xóa
                 </button>
               </div>
+            </label>
+            <div className="flex gap-4">
+              <button onClick={autoBuild} disabled={productsLoading} className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-white disabled:opacity-50 disabled:hover:scale-100">
+                <RefreshCw className="w-5 h-5" /> {productsLoading ? 'Đang tải...' : 'Tự động build'}
+              </button>
+              <button onClick={resetBuild} className={`px-6 py-3 rounded-lg font-semibold transition-colors ${isDark ? 'bg-white/10 hover:bg-white/20 border border-white/20 text-white' : 'bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-700'}`}>
+                Xóa hết
+              </button>
             </div>
+          </div>
 
             <div
               className={`backdrop-blur-sm rounded-lg p-4 ${isDark ? "bg-gradient-to-br from-blue-900/40 to-blue-800/20 border border-blue-500/30" : "bg-white/80 border border-blue-300 shadow-lg"}`}
@@ -675,7 +657,13 @@ export function PCBuilderPage() {
                 </button>
               )}
             </div>
+            {totalPrice > 0 && (
+              <button onClick={addBuildToCart} className="w-full mt-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg font-semibold hover:scale-105 transition-transform text-white">
+                Thêm vào giỏ hàng
+              </button>
+            )}
           </div>
+        </div>
 
           {/* Request Button */}
           <div style={{ marginBottom: "12px" }}>
@@ -936,143 +924,33 @@ export function PCBuilderPage() {
         /* My Requests Tab */
         <div>
           {myRequests.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 20px" }}>
-              <ClipboardList
-                style={{
-                  width: 64,
-                  height: 64,
-                  color: isDark ? "#4b5563" : "#d1d5db",
-                  margin: "0 auto 16px",
-                }}
-              />
-              <p
-                style={{
-                  fontSize: "18px",
-                  fontWeight: 600,
-                  color: isDark ? "#fff" : "#111",
-                  marginBottom: "8px",
-                }}
-              >
-                Chưa có yêu cầu nào
-              </p>
-              <p
-                style={{
-                  fontSize: "14px",
-                  color: isDark ? "#9ca3af" : "#6b7280",
-                }}
-              >
-                Chuyển sang tab "Build PC" để gửi yêu cầu tư vấn
-              </p>
+            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+              <ClipboardList style={{ width: 64, height: 64, color: isDark ? '#4b5563' : '#d1d5db', margin: '0 auto 16px' }} />
+              <p style={{ fontSize: '18px', fontWeight: 600, color: isDark ? '#fff' : '#111', marginBottom: '8px' }}>Chưa có yêu cầu nào</p>
+              <p style={{ fontSize: '14px', color: isDark ? '#9ca3af' : '#6b7280' }}>Chuyển sang tab "Build PC" để gửi yêu cầu tư vấn</p>
             </div>
           ) : (
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-            >
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {myRequests.map((req) => {
                 const st = STATUS_INFO[req.status];
                 const StIcon = st.icon;
                 return (
-                  <div
-                    key={req.id}
-                    style={{
-                      padding: "20px",
-                      borderRadius: "16px",
-                      background: isDark
-                        ? "rgba(255,255,255,0.03)"
-                        : "rgba(255,255,255,0.8)",
-                      border: `1px solid ${isDark ? "rgba(139,92,246,0.15)" : "#e5e7eb"}`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        flexWrap: "wrap",
-                        gap: "12px",
-                      }}
-                    >
+                  <div key={req.id} style={{ padding: '20px', borderRadius: '16px', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.8)', border: `1px solid ${isDark ? 'rgba(139,92,246,0.15)' : '#e5e7eb'}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
                       <div>
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "10px",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: "16px",
-                              fontWeight: 700,
-                              color: isDark ? "#fff" : "#111",
-                            }}
-                          >
-                            {req.id}
-                          </span>
-                          <span
-                            style={{
-                              display: "inline-flex",
-                              alignItems: "center",
-                              gap: "5px",
-                              padding: "3px 10px",
-                              borderRadius: "12px",
-                              fontSize: "12px",
-                              fontWeight: 600,
-                              color: st.color,
-                              background: `${st.color}15`,
-                            }}
-                          >
-                            <StIcon style={{ width: 13, height: 13 }} />{" "}
-                            {st.label}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                          <span style={{ fontSize: '16px', fontWeight: 700, color: isDark ? '#fff' : '#111' }}>{req.id}</span>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, color: st.color, background: `${st.color}15` }}>
+                            <StIcon style={{ width: 13, height: 13 }} /> {st.label}
                           </span>
                         </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "20px",
-                            fontSize: "14px",
-                            color: isDark ? "#9ca3af" : "#6b7280",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span>
-                            Ngân sách:{" "}
-                            <strong
-                              style={{ color: isDark ? "#10b981" : "#059669" }}
-                            >
-                              {req.budget.toLocaleString("vi-VN")}₫
-                            </strong>
-                          </span>
-                          <span>
-                            Mục đích:{" "}
-                            <strong
-                              style={{ color: isDark ? "#d1d5db" : "#374151" }}
-                            >
-                              {req.purpose}
-                            </strong>
-                          </span>
+                        <div style={{ display: 'flex', gap: '20px', fontSize: '14px', color: isDark ? '#9ca3af' : '#6b7280', flexWrap: 'wrap' }}>
+                          <span>Ngân sách: <strong style={{ color: isDark ? '#10b981' : '#059669' }}>{req.budget.toLocaleString('vi-VN')}₫</strong></span>
+                          <span>Mục đích: <strong style={{ color: isDark ? '#d1d5db' : '#374151' }}>{req.purpose}</strong></span>
                           <span>{req.createdAt}</span>
                         </div>
                       </div>
-                      <button
-                        onClick={() => setViewRequest(req)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px",
-                          padding: "8px 16px",
-                          borderRadius: "10px",
-                          border: "none",
-                          cursor: "pointer",
-                          background: isDark
-                            ? "rgba(139,92,246,0.15)"
-                            : "#f3e8ff",
-                          color: isDark ? "#a78bfa" : "#7c3aed",
-                          fontSize: "13px",
-                          fontWeight: 600,
-                        }}
-                      >
+                      <button onClick={() => setViewRequest(req)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: isDark ? 'rgba(139,92,246,0.15)' : '#f3e8ff', color: isDark ? '#a78bfa' : '#7c3aed', fontSize: '13px', fontWeight: 600 }}>
                         <Eye style={{ width: 15, height: 15 }} /> Chi tiết
                       </button>
                     </div>
@@ -1085,74 +963,19 @@ export function PCBuilderPage() {
       )}
 
       {/* Request Modal */}
-      {showRequestModal &&
-        createPortal(
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "16px",
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                background: "rgba(0,0,0,0.6)",
-                backdropFilter: "blur(4px)",
-              }}
-              onClick={() => setShowRequestModal(false)}
-            />
-            <div
-              style={{
-                position: "relative",
-                zIndex: 1,
-                width: "100%",
-                maxWidth: "500px",
-                borderRadius: "20px",
-                padding: "28px",
-                background: isDark
-                  ? "linear-gradient(160deg, #130d30, #0f0e17)"
-                  : "#fff",
-                border: isDark
-                  ? "1px solid rgba(139,92,246,0.2)"
-                  : "1px solid #e5e7eb",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "24px",
-                }}
-              >
-                <h2
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: 700,
-                    color: isDark ? "#fff" : "#111",
-                    margin: 0,
-                  }}
-                >
-                  Gửi yêu cầu tư vấn
-                </h2>
-                <button
-                  onClick={() => setShowRequestModal(false)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#9ca3af",
-                    cursor: "pointer",
-                    display: "flex",
-                  }}
-                >
-                  <X style={{ width: 20, height: 20 }} />
-                </button>
+      {showRequestModal && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setShowRequestModal(false)} />
+          <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '500px', borderRadius: '20px', padding: '28px', background: isDark ? 'linear-gradient(160deg, #130d30, #0f0e17)' : '#fff', border: isDark ? '1px solid rgba(139,92,246,0.2)' : '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: isDark ? '#fff' : '#111', margin: 0 }}>Gửi yêu cầu tư vấn</h2>
+              <button onClick={() => setShowRequestModal(false)} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex' }}><X style={{ width: 20, height: 20 }} /></button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '6px' }}>Ngân sách</label>
+                <div style={{ padding: '12px 14px', borderRadius: '10px', fontSize: '16px', fontWeight: 700, background: isDark ? 'rgba(16,185,129,0.1)' : '#ecfdf5', color: isDark ? '#10b981' : '#059669', border: isDark ? '1px solid rgba(16,185,129,0.2)' : '1px solid #a7f3d0' }}>{budget.toLocaleString('vi-VN')}₫</div>
+                <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>Lấy từ thanh ngân sách bạn đã chọn</p>
               </div>
               <div
                 style={{
@@ -1199,144 +1022,14 @@ export function PCBuilderPage() {
                   </p>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      color: isDark ? "#9ca3af" : "#6b7280",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Mục đích sử dụng
-                  </label>
-                  <select
-                    value={requestForm.purpose}
-                    onChange={(e) =>
-                      setRequestForm({
-                        ...requestForm,
-                        purpose: e.target.value,
-                      })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "12px 14px",
-                      borderRadius: "10px",
-                      fontSize: "14px",
-                      cursor: "pointer",
-                      border: isDark
-                        ? "1px solid rgba(139,92,246,0.2)"
-                        : "1px solid #e5e7eb",
-                      background: isDark ? "rgba(255,255,255,0.05)" : "#f9fafb",
-                      color: isDark ? "#fff" : "#111",
-                      outline: "none",
-                      boxSizing: "border-box" as const,
-                    }}
-                  >
-                    {PURPOSE_OPTIONS.map((o) => (
-                      <option
-                        key={o}
-                        value={o}
-                        style={{
-                          background: isDark ? "#1a1035" : "#fff",
-                          color: isDark ? "#fff" : "#111",
-                        }}
-                      >
-                        {o}
-                      </option>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '6px' }}>Cấu hình bạn đã chọn (sẽ gửi kèm)</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {buildComponents.filter((c) => c.product).map((c) => (
+                      <div key={c.category} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9fafb', fontSize: '13px' }}>
+                        <span style={{ color: isDark ? '#9ca3af' : '#6b7280' }}>{PC_BUILDER_LABELS[c.category]}: <strong style={{ color: isDark ? '#d1d5db' : '#374151' }}>{c.product!.name}</strong></span>
+                        <span style={{ color: '#10b981', fontWeight: 600 }}>{c.product!.price.toLocaleString('vi-VN')}₫</span>
+                      </div>
                     ))}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    style={{
-                      display: "block",
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      color: isDark ? "#9ca3af" : "#6b7280",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Ghi chú thêm
-                  </label>
-                  <textarea
-                    value={requestForm.note}
-                    onChange={(e) =>
-                      setRequestForm({ ...requestForm, note: e.target.value })
-                    }
-                    rows={3}
-                    placeholder="Ví dụ: Muốn chơi game AAA ở 1080p, hoặc cần render video 4K..."
-                    style={{
-                      width: "100%",
-                      padding: "12px 14px",
-                      borderRadius: "10px",
-                      fontSize: "14px",
-                      resize: "vertical",
-                      border: isDark
-                        ? "1px solid rgba(139,92,246,0.2)"
-                        : "1px solid #e5e7eb",
-                      background: isDark ? "rgba(255,255,255,0.05)" : "#f9fafb",
-                      color: isDark ? "#fff" : "#111",
-                      outline: "none",
-                      fontFamily: "inherit",
-                      boxSizing: "border-box" as const,
-                    }}
-                  />
-                </div>
-                {buildComponents.some((c) => c.product) && (
-                  <div>
-                    <label
-                      style={{
-                        display: "block",
-                        fontSize: "13px",
-                        fontWeight: 500,
-                        color: isDark ? "#9ca3af" : "#6b7280",
-                        marginBottom: "6px",
-                      }}
-                    >
-                      Cấu hình bạn đã chọn (sẽ gửi kèm)
-                    </label>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "4px",
-                      }}
-                    >
-                      {buildComponents
-                        .filter((c) => c.product)
-                        .map((c) => (
-                          <div
-                            key={c.category}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              padding: "8px 12px",
-                              borderRadius: "8px",
-                              background: isDark
-                                ? "rgba(255,255,255,0.03)"
-                                : "#f9fafb",
-                              fontSize: "13px",
-                            }}
-                          >
-                            <span
-                              style={{ color: isDark ? "#9ca3af" : "#6b7280" }}
-                            >
-                              {PC_BUILDER_LABELS[c.category]}:{" "}
-                              <strong
-                                style={{
-                                  color: isDark ? "#d1d5db" : "#374151",
-                                }}
-                              >
-                                {c.product!.name}
-                              </strong>
-                            </span>
-                            <span style={{ color: "#10b981", fontWeight: 600 }}>
-                              {c.product!.price.toLocaleString("vi-VN")}₫
-                            </span>
-                          </div>
-                        ))}
-                    </div>
                   </div>
                 )}
               </div>
@@ -1377,96 +1070,24 @@ export function PCBuilderPage() {
                 </button>
               </div>
             </div>
-          </div>,
-          document.body,
-        )}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
+              <button onClick={() => setShowRequestModal(false)} style={{ flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', border: isDark ? '1px solid rgba(139,92,246,0.2)' : '1px solid #e5e7eb', background: 'transparent', color: isDark ? '#9ca3af' : '#6b7280' }}>Hủy</button>
+              <button onClick={submitRequest} style={{ flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg, #10b981, #06b6d4)', color: '#fff' }}>Gửi yêu cầu</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
 
       {/* View Request Detail Modal */}
-      {viewRequest &&
-        createPortal(
-          <div
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "center",
-              padding: "40px 16px",
-              overflowY: "auto",
-            }}
-          >
-            <div
-              style={{
-                position: "fixed",
-                inset: 0,
-                background: "rgba(0,0,0,0.6)",
-                backdropFilter: "blur(4px)",
-              }}
-              onClick={() => setViewRequest(null)}
-            />
-            <div
-              style={{
-                position: "relative",
-                zIndex: 1,
-                width: "100%",
-                maxWidth: "560px",
-                borderRadius: "20px",
-                padding: "28px",
-                background: isDark
-                  ? "linear-gradient(160deg, #130d30, #0f0e17)"
-                  : "#fff",
-                border: isDark
-                  ? "1px solid rgba(139,92,246,0.2)"
-                  : "1px solid #e5e7eb",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "20px",
-                }}
-              >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
-                >
-                  <h2
-                    style={{
-                      fontSize: "20px",
-                      fontWeight: 700,
-                      color: isDark ? "#fff" : "#111",
-                      margin: 0,
-                    }}
-                  >
-                    {viewRequest.id}
-                  </h2>
-                  <span
-                    style={{
-                      padding: "3px 10px",
-                      borderRadius: "12px",
-                      fontSize: "12px",
-                      fontWeight: 600,
-                      color: STATUS_INFO[viewRequest.status].color,
-                      background: `${STATUS_INFO[viewRequest.status].color}15`,
-                    }}
-                  >
-                    {STATUS_INFO[viewRequest.status].label}
-                  </span>
-                </div>
-                <button
-                  onClick={() => setViewRequest(null)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "#9ca3af",
-                    cursor: "pointer",
-                    display: "flex",
-                  }}
-                >
-                  <X style={{ width: 20, height: 20 }} />
-                </button>
+      {viewRequest && createPortal(
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px', overflowY: 'auto' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setViewRequest(null)} />
+          <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '560px', borderRadius: '20px', padding: '28px', background: isDark ? 'linear-gradient(160deg, #130d30, #0f0e17)' : '#fff', border: isDark ? '1px solid rgba(139,92,246,0.2)' : '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 700, color: isDark ? '#fff' : '#111', margin: 0 }}>{viewRequest.id}</h2>
+                <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '12px', fontWeight: 600, color: STATUS_INFO[viewRequest.status].color, background: `${STATUS_INFO[viewRequest.status].color}15` }}>{STATUS_INFO[viewRequest.status].label}</span>
               </div>
               <div
                 style={{
@@ -1675,22 +1296,11 @@ export function PCBuilderPage() {
                         {b.price.toLocaleString("vi-VN")}₫
                       </span>
                     </div>
-                  ))}
-                  <div
-                    style={{
-                      textAlign: "right",
-                      paddingTop: "8px",
-                      fontSize: "16px",
-                      fontWeight: 700,
-                      color: "#a78bfa",
-                    }}
-                  >
-                    Tổng:{" "}
-                    {viewRequest.staffBuild
-                      .reduce((s, b) => s + b.price, 0)
-                      .toLocaleString("vi-VN")}
-                    ₫
+                    <span style={{ fontSize: '14px', color: '#a78bfa', fontWeight: 600, alignSelf: 'center' }}>{b.price.toLocaleString('vi-VN')}₫</span>
                   </div>
+                ))}
+                <div style={{ textAlign: 'right', paddingTop: '8px', fontSize: '16px', fontWeight: 700, color: '#a78bfa' }}>
+                  Tổng: {viewRequest.staffBuild.reduce((s, b) => s + b.price, 0).toLocaleString('vi-VN')}₫
                 </div>
               )}
               <button
