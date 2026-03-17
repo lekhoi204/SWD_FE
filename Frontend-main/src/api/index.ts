@@ -27,7 +27,6 @@ export {
   deleteCategoryApi,
   type Category,
 } from "./categories";
-export { checkoutApi } from "./checkout";
 export {
   getPromotionsApi,
   getPromotionByIdApi,

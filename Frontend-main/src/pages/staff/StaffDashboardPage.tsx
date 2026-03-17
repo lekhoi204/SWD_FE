@@ -1,22 +1,83 @@
-import { ClipboardList, Clock, CheckCircle, XCircle, ArrowUpRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ClipboardList, Clock, CheckCircle, ArrowUpRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const STATS = [
-  { label: 'Tổng requests', value: '24', icon: ClipboardList, color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
-  { label: 'Chờ duyệt', value: '8', icon: Clock, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
-  { label: 'Đã duyệt', value: '12', icon: CheckCircle, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-  { label: 'Hoàn thành', value: '4', icon: CheckCircle, color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
-];
-
-const RECENT_REQUESTS = [
-  { id: 'REQ-008', user: 'Nguyễn Văn A', budget: '30,000,000đ', purpose: 'Gaming', status: 'Chờ duyệt', statusColor: '#f59e0b', date: '09/03/2026' },
-  { id: 'REQ-007', user: 'Trần Thị B', budget: '15,000,000đ', purpose: 'Học tập', status: 'Chờ duyệt', statusColor: '#f59e0b', date: '08/03/2026' },
-  { id: 'REQ-006', user: 'Lê Văn C', budget: '50,000,000đ', purpose: 'Đồ hoạ', status: 'Đã duyệt', statusColor: '#3b82f6', date: '07/03/2026' },
-  { id: 'REQ-005', user: 'Phạm Thị D', budget: '20,000,000đ', purpose: 'Văn phòng', status: 'Hoàn thành', statusColor: '#8b5cf6', date: '06/03/2026' },
-  { id: 'REQ-004', user: 'Hoàng Văn E', budget: '40,000,000đ', purpose: 'Gaming', status: 'Từ chối', statusColor: '#ef4444', date: '05/03/2026' },
-];
+import StaffBuildRequestsApi from '@/api/staffBuildRequests';
 
 export function StaffDashboardPage() {
+  const [stats, setStats] = useState({ total: 0, pending: 0, accepted: 0, completed: 0 });
+  const [recentRequests, setRecentRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const reqs = await StaffBuildRequestsApi.getAllStaffBuildRequests();
+        if (mounted) {
+          const list = reqs || [];
+          
+          let pending = 0, accepted = 0, completed = 0;
+          list.forEach((r: any) => {
+            if (r.status === 'pending') pending++;
+            else if (r.status === 'accepted') accepted++;
+            else if (r.status === 'completed') completed++;
+          });
+
+          setStats({ total: list.length, pending, accepted, completed });
+
+          // Map and slice top 5
+          const recent = list.slice(0, 5).map((req: any) => {
+            const noteLines = (req.customer_note || '').split('\n');
+            let purpose = 'Khác';
+            for (const line of noteLines) {
+              if (line.startsWith('Mục đích:')) purpose = line.replace('Mục đích:', '').trim();
+            }
+            
+            let statusColor = '#9ca3af';
+            let statusLabel = req.status || 'Chờ duyệt';
+            if (req.status === 'pending') { statusColor = '#f59e0b'; statusLabel = 'Chờ duyệt'; }
+            if (req.status === 'accepted') { statusColor = '#3b82f6'; statusLabel = 'Đã duyệt'; }
+            if (req.status === 'completed') { statusColor = '#8b5cf6'; statusLabel = 'Hoàn thành'; }
+            if (req.status === 'rejected') { statusColor = '#ef4444'; statusLabel = 'Từ chối'; }
+
+            return {
+              id: req.request_id || req.id || 'N/A',
+              user: req.user?.username || req.user?.name || req.user_id || 'Khách',
+              budget: Number(req.budget_range || 0).toLocaleString('vi-VN') + 'đ',
+              purpose,
+              status: statusLabel,
+              statusColor,
+              date: req.created_at ? req.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+            };
+          });
+          setRecentRequests(recent);
+        }
+      } catch (err) {
+        console.error('Fetch dashboard staff requests failed:', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const STATS_CARDS = [
+    { label: 'Tổng requests', value: stats.total, icon: ClipboardList, color: '#10b981', bg: 'rgba(16,185,129,0.15)' },
+    { label: 'Chờ duyệt', value: stats.pending, icon: Clock, color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' },
+    { label: 'Đã duyệt', value: stats.accepted, icon: CheckCircle, color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+    { label: 'Hoàn thành', value: stats.completed, icon: CheckCircle, color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' },
+  ];
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', color: '#9ca3af' }}>
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mb-4" />
+        <p>Đang tải dữ liệu dashboard...</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div style={{ marginBottom: '32px' }}>
@@ -31,7 +92,7 @@ export function StaffDashboardPage() {
         gap: '20px',
         marginBottom: '32px',
       }}>
-        {STATS.map((s) => (
+        {STATS_CARDS.map((s) => (
           <div key={s.label} style={{
             background: 'rgba(255,255,255,0.03)',
             border: '1px solid rgba(16,185,129,0.12)',
@@ -88,7 +149,7 @@ export function StaffDashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {RECENT_REQUESTS.map((r) => (
+              {recentRequests.map((r) => (
                 <tr key={r.id} style={{ borderBottom: '1px solid rgba(16,185,129,0.05)' }}>
                   <td style={{ padding: '14px 24px', fontSize: '14px', color: '#34d399', fontWeight: 600 }}>{r.id}</td>
                   <td style={{ padding: '14px 24px', fontSize: '14px', color: '#d1d5db' }}>{r.user}</td>
@@ -104,6 +165,13 @@ export function StaffDashboardPage() {
                   <td style={{ padding: '14px 24px', fontSize: '14px', color: '#9ca3af' }}>{r.date}</td>
                 </tr>
               ))}
+              {recentRequests.length === 0 && (
+                <tr>
+                  <td colSpan={6} style={{ padding: '40px 24px', textAlign: 'center', color: '#6b7280' }}>
+                    Chưa có request nào
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

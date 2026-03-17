@@ -10,6 +10,7 @@ import {
   LogOut,
   ChevronLeft,
   Settings,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Toaster } from '@/components/Toaster';
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { label: 'Sản phẩm', icon: Package, to: '/manager/products' },
   { label: 'Danh mục', icon: FolderTree, to: '/manager/categories' },
   { label: 'Khuyến mãi', icon: Percent, to: '/manager/promotions' },
+  { label: 'Đơn hàng', icon: ClipboardList, to: '/manager/orders' },
 ];
 
 const ACCENT = '#f59e0b';

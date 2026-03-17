@@ -16,7 +16,6 @@ import { Toaster } from '@/components/Toaster';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, to: '/admin' },
   { label: 'Quản lý tài khoản', icon: Users, to: '/admin/users' },
-  { label: 'Quản lý đơn hàng', icon: ClipboardList, to: '/admin/orders' },
 ];
 
 export function AdminLayout() {

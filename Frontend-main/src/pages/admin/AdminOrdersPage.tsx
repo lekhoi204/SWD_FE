@@ -25,10 +25,12 @@ const STATUS_STYLE: Record<string, { color: string; bg: string; icon: typeof Clo
   Cancelled: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', icon: XCircle },
 };
 
-const PAYMENT_STYLE: Record<string, { color: string; bg: string; icon: typeof CreditCard }> = {
-  'One-time': { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: CreditCard },
-  'Installment': { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: CreditCard },
-  'COD': { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: Banknote },
+const PAYMENT_STYLE: Record<string, { color: string; bg: string; icon: typeof CreditCard; label: string }> = {
+  'QR_FULL': { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: CreditCard, label: 'Mã QR (toàn bộ)' },
+  'QR_INSTALLMENT': { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: CreditCard, label: 'Mã QR (trả góp)' },
+  'COD': { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: Banknote, label: 'Trả sau (COD)' },
+  'One-time': { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: CreditCard, label: 'Một lần' },
+  'Installment': { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: CreditCard, label: 'Trả góp' },
 };
 
 const formatPrice = (p: number) => p.toLocaleString('vi-VN') + 'đ';
@@ -188,7 +190,8 @@ export function AdminOrdersPage() {
               {filtered.map((o) => {
                 const st = STATUS_STYLE[o.status] || STATUS_STYLE.Pending;
                 const StIcon = st.icon;
-                const pt = PAYMENT_STYLE[o.payment_type] || PAYMENT_STYLE['One-time'];
+                const methodStr = o.payment_method || o.payment_type || 'One-time';
+                const pt = PAYMENT_STYLE[methodStr] || { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: CreditCard, label: methodStr };
                 const PtIcon = pt.icon;
                 return (
                   <tr key={o.order_id} style={{ borderBottom: '1px solid rgba(139,92,246,0.05)' }}>
@@ -201,7 +204,7 @@ export function AdminOrdersPage() {
                     <td style={{ padding: '14px 16px', fontSize: '14px', color: '#10b981', fontWeight: 600, whiteSpace: 'nowrap' }}>{formatPrice(o.total_amount)}</td>
                     <td style={{ padding: '14px 16px' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: pt.color, background: pt.bg }}>
-                        <PtIcon style={{ width: 13, height: 13 }} /> {o.payment_type}
+                        <PtIcon style={{ width: 13, height: 13 }} /> {pt.label}
                       </span>
                     </td>
                     <td style={{ padding: '14px 16px' }}>
@@ -252,7 +255,7 @@ export function AdminOrdersPage() {
               <InfoBlock label="Email"><span style={{ color: '#d1d5db' }}>{viewOrder.user_email || '—'}</span></InfoBlock>
               <InfoBlock label="Điện thoại"><span style={{ color: '#d1d5db' }}>{viewOrder.user_phone || '—'}</span></InfoBlock>
               <InfoBlock label="Ngày đặt"><span style={{ color: '#d1d5db' }}>{formatDate(viewOrder.order_date)}</span></InfoBlock>
-              <InfoBlock label="Thanh toán"><span style={{ color: '#d1d5db' }}>{viewOrder.payment_type}{viewOrder.payment_method ? ` (${viewOrder.payment_method})` : ''}</span></InfoBlock>
+              <InfoBlock label="Thanh toán"><span style={{ color: '#d1d5db' }}>{viewOrder.payment_method ? (PAYMENT_STYLE[viewOrder.payment_method]?.label || viewOrder.payment_method) : (PAYMENT_STYLE[viewOrder.payment_type]?.label || viewOrder.payment_type)}</span></InfoBlock>
               <InfoBlock label="Mã khuyến mãi"><span style={{ color: viewOrder.promotion_code ? '#f59e0b' : '#6b7280' }}>{viewOrder.promotion_code || 'Không có'}</span></InfoBlock>
             </div>
 

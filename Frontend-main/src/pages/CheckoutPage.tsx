@@ -7,12 +7,13 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { createOrderApi, CreateOrderRequest } from "@/api/orders";
-import { checkoutApi } from "@/api/checkout";
+
 import {
   createQrFullPayment,
   createQrInstallmentPayment,
   confirmPayment,
 } from "@/api/payments";
+import { getPromotionByCodeApi } from "@/api/promotions";
 import type { InstallmentPlan } from "@/types";
 
 const INSTALLMENT_PLANS: InstallmentPlan[] = [
@@ -47,6 +48,9 @@ export function CheckoutPage() {
     district: "",
     notes: "",
   });
+  const [promotionInput, setPromotionInput] = useState("");
+  const [appliedPromotion, setAppliedPromotion] = useState<any>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
   // Auto-select all cart items on component mount
   useEffect(() => {
@@ -62,7 +66,9 @@ export function CheckoutPage() {
 
   const shipping =
     selectedAmount > 0 ? (selectedAmount > 10000000 ? 0 : 200000) : 0;
-  const subtotal = selectedAmount + shipping;
+  const baseSubtotal = selectedAmount + shipping;
+  const discountAmount = appliedPromotion ? baseSubtotal * (appliedPromotion.discount_percent / 100) : 0;
+  const subtotal = Math.max(0, baseSubtotal - discountAmount);
   const totalWithInterest =
     paymentMethod === "installment"
       ? subtotal * (1 + selectedPlan.interest / 100)
@@ -71,6 +77,24 @@ export function CheckoutPage() {
     paymentMethod === "installment"
       ? totalWithInterest / selectedPlan.months
       : 0;
+
+  const handleApplyPromotion = async () => {
+    if (!promotionInput.trim()) {
+      setAppliedPromotion(null);
+      return;
+    }
+    setIsApplyingPromo(true);
+    try {
+      const p = await getPromotionByCodeApi(promotionInput.toUpperCase());
+      setAppliedPromotion(p);
+      toast.success("Áp dụng mã khuyến mãi thành công!");
+    } catch (err: any) {
+      toast.error(err.message || "Mã khuyến mãi không hợp lệ hoặc đã hết hạn");
+      setAppliedPromotion(null);
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
 
   const handleSelectItem = (cartItemId: number) => {
     setSelectedCartItems((prev) =>
@@ -120,15 +144,12 @@ export function CheckoutPage() {
             : paymentMethod === "installment"
               ? "QR_INSTALLMENT"
               : "COD",
-        promotion_code: null,
+        promotion_code: appliedPromotion ? appliedPromotion.code : null,
       };
 
-      // If user selected all cart items, use /checkout endpoint to create order from cart
-      const orderResult =
-        selectedCartItems.length === cart.length
-          ? await checkoutApi({ shipping_address: orderData.shipping_address })
-          : await createOrderApi(orderData);
-      setOrderId(orderResult.order_id || orderResult.order_id);
+      // All orders directly use createOrderApi since checkoutApi is deprecated
+      const orderResult = await createOrderApi(orderData);
+      setOrderId(orderResult.order_id);
 
       // If COD, skip QR generation and go to success
       if (paymentMethod === "cod") {
@@ -723,6 +744,41 @@ export function CheckoutPage() {
                   </span>
                 </div>
               )}
+              {/* Promotion UI */}
+              <div className="pt-4 border-t border-purple-500/30">
+                <label className="block text-sm font-semibold mb-2">Mã khuyến mãi</label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={promotionInput}
+                    onChange={(e) => setPromotionInput(e.target.value)}
+                    placeholder="Nhập mã giảm giá..."
+                    className="flex-1 px-3 py-2 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                  />
+                  <button
+                    onClick={handleApplyPromotion}
+                    disabled={isApplyingPromo}
+                    className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-semibold hover:bg-purple-500 transition-colors disabled:opacity-50 flex items-center"
+                  >
+                     {isApplyingPromo ? <Loader className="w-4 h-4 animate-spin" /> : "Áp dụng"}
+                  </button>
+                </div>
+                {appliedPromotion && (
+                  <div className="text-sm text-green-400 font-medium">
+                    Đã áp dụng mã {appliedPromotion.code} (-{appliedPromotion.discount_percent}%)
+                  </div>
+                )}
+              </div>
+
+              {appliedPromotion && (
+                <div className="flex justify-between text-green-400">
+                  <span>Giảm giá:</span>
+                  <span className="font-semibold">
+                    -{discountAmount.toLocaleString("vi-VN")}₫
+                  </span>
+                </div>
+              )}
+
               <div className="pt-4 border-t border-purple-500/30">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-lg font-semibold">Tổng cộng:</span>

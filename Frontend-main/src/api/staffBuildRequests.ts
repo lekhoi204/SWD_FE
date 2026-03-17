@@ -47,9 +47,10 @@ export async function submitBuildForRequest(
   id: string | number,
   payload: any,
 ): Promise<any> {
+  const payloadWithStatus = { ...payload, status: "completed" };
   const res = await apiClient<{ success: boolean; data: any }>(
-    `/staff-build-requests/${id}/submit-build`,
-    { method: "POST", body: payload },
+    `/staff-build-requests/${id}`,
+    { method: "PUT", body: payloadWithStatus },
   );
   return res.data;
 }

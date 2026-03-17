@@ -6,20 +6,23 @@ import { getProductsApi } from "@/api/products";
 import type { Product } from "@/types";
 import { CATEGORY_LABELS } from "@/constants/categories";
 
-const CATEGORY_ICONS: Record<string, string> = {
-  laptop: "💻",
-  pc: "🖥️",
-  cpu: "🔲",
-  gpu: "🎮",
-  ram: "🧠",
-  storage: "💾",
-  motherboard: "⚡",
-  psu: "🔋",
-  case: "📦",
-  cooling: "❄️",
-  monitor: "🖼️",
-  keyboard: "⌨️",
-  mouse: "🖱️",
+const CATEGORY_IMAGES: Record<string, string> = {
+  laptop: "https://file.hstatic.net/200000636033/file/icon1_ce115f32db874a8e9b5af39517176e96.png",
+  pc: "https://file.hstatic.net/200000636033/file/icon3_5c59c1dc52ec4b81a94a3edba293e895.png",
+  cpu: "https://file.hstatic.net/200000636033/file/icon6_056974287cd84e0d82eac05809b7e5d5.png",
+  gpu: "https://file.hstatic.net/200000722513/file/asus-rog-strix-rtx4090-o24g-gaming-03_c948a4c2a9cf4adcbd522319bfcd4846.jpg",
+  ram: "https://file.hstatic.net/200000636033/file/icon13_708c31c3ba56430dbec3f4cc7e1b14f0.png",
+  storage: "https://file.hstatic.net/200000636033/file/icon11_2f0ea4c77ae3482f906591cec8f24cea.png",
+  motherboard: "https://file.hstatic.net/200000636033/file/icon5_71200675c9e64c32a11730486ba04b32.png",
+  psu: "https://file.hstatic.net/200000636033/file/icon9_ffd172460eb24c4d8bab6a7cd9a8cc46.png",
+  case: "https://file.hstatic.net/200000636033/file/icon7_cdd85eba03974cb99a3941d076bf5d1b.png",
+  cooling: "https://file.hstatic.net/200000636033/file/icon8_8f7b3fe2e8fb450b805857be9bb14edc.png",
+  monitor: "https://product.hstatic.net/200000722513/product/asus_pg27aqdm_gearvn_53c46bd0ca1f40f1a7abfb0246800081_e341bb95b0724bee845ba8f093678245_master.jpg",
+  keyboard: "https://file.hstatic.net/200000722513/file/ban_phim_93a4d3cefd8345dfac23829818a3c5d4.jpg",
+  mouse: "https://file.hstatic.net/200000722513/file/chuot_aa348bf0177b4795a39ab66d51e62ed7.jpg",
+  headphone: "https://file.hstatic.net/200000722513/file/tai_nghe_ed3b4f52172f40929e1d3ab493099b73.jpg",
+  speaker: "https://file.hstatic.net/200000636033/file/icon10_bfdf42150dbf45cfbcdf990b26f59691.png",
+  hub: "https://file.hstatic.net/200000636033/file/icon19_0197366bbf124fed9b939c9b7075c2db.png",
 };
 
 export function HomePage() {
@@ -185,8 +188,12 @@ export function HomePage() {
                   : "bg-white/60 border border-purple-300 hover:border-purple-500 shadow-lg"
               }`}
             >
-              <div className="text-4xl mb-2">
-                {CATEGORY_ICONS[category] ?? "📦"}
+              <div className="w-16 h-16 mx-auto mb-3 flex items-center justify-center bg-white rounded-lg p-2">
+                {CATEGORY_IMAGES[category] ? (
+                  <img src={CATEGORY_IMAGES[category]} alt={label} className="max-w-full max-h-full object-contain" />
+                ) : (
+                  <span className="text-4xl text-gray-500">📦</span>
+                )}
               </div>
               <div
                 className={`font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
@@ -229,11 +236,11 @@ export function HomePage() {
                     : "bg-white/60 border border-purple-300 shadow-lg"
                 }`}
               >
-                <div className="aspect-video overflow-hidden">
+                <div className="aspect-[4/3] w-full bg-white overflow-hidden flex items-center justify-center p-6 border-b border-gray-100/10">
                   <img
                     src={product.image}
                     alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-300"
                   />
                 </div>
                 <div className="p-6">

@@ -8,6 +8,7 @@ import {
   LogOut,
   ChevronLeft,
   Wrench,
+  Monitor,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Toaster } from '@/components/Toaster';
@@ -15,6 +16,7 @@ import { Toaster } from '@/components/Toaster';
 const NAV_ITEMS = [
   { label: 'Dashboard', icon: LayoutDashboard, to: '/staff' },
   { label: 'Build Requests', icon: ClipboardList, to: '/staff/requests' },
+  { label: 'PC Builds (Đăng bán)', icon: Monitor, to: '/staff/builds' },
 ];
 
 export function StaffLayout() {

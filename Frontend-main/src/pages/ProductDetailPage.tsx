@@ -150,11 +150,11 @@ export function ProductDetailPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-100 flex items-center justify-center p-8 overflow-hidden aspect-square">
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         </div>
 

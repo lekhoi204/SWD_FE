@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { Search, X, Check, XCircle, Send, Plus, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Search, X, Check, XCircle, Send, Trash2, Loader2, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
-import { products } from '@/data/products';
 import { PC_BUILDER_CATEGORIES, PC_BUILDER_LABELS } from '@/constants/categories';
+import StaffBuildRequestsApi from '@/api/staffBuildRequests';
+import { getProductsApi } from '@/api/products';
+import type { Product } from '@/types';
 
 type RequestStatus = 'pending' | 'accepted' | 'rejected' | 'completed';
 
-type BuildItem = { category: string; productId: string; productName: string; price: number };
+type BuildItem = { category: string; productId?: string; productName?: string; name?: string; price: number };
 
 type BuildRequest = {
   id: string;
@@ -29,56 +31,7 @@ const STATUS_MAP: Record<RequestStatus, { label: string; color: string }> = {
   completed: { label: 'Hoàn thành', color: '#8b5cf6' },
 };
 
-const MOCK_REQUESTS: BuildRequest[] = [
-  {
-    id: 'REQ-001', userName: 'Nguyễn Văn An', userEmail: 'an.nguyen@gmail.com',
-    budget: 30000000, purpose: 'Gaming', note: 'Muốn chơi được game AAA ở 1080p high settings',
-    currentBuild: [
-      { category: 'cpu', productId: 'cpu-1', productName: 'AMD Ryzen 5 5600X', price: 4990000 },
-      { category: 'gpu', productId: 'gpu-1', productName: 'RTX 3060 Ti', price: 11990000 },
-    ],
-    status: 'pending', createdAt: '2026-03-09',
-  },
-  {
-    id: 'REQ-002', userName: 'Trần Thị Bình', userEmail: 'binh.tran@gmail.com',
-    budget: 15000000, purpose: 'Học tập', note: 'Cần máy để học lập trình và chạy Docker',
-    currentBuild: [],
-    status: 'pending', createdAt: '2026-03-08',
-  },
-  {
-    id: 'REQ-003', userName: 'Lê Văn Cường', userEmail: 'cuong.le@gmail.com',
-    budget: 50000000, purpose: 'Đồ hoạ / Render', note: 'Render video 4K, After Effects, Premiere Pro',
-    currentBuild: [
-      { category: 'cpu', productId: 'cpu-2', productName: 'Intel Core i7-13700K', price: 9990000 },
-    ],
-    status: 'accepted', createdAt: '2026-03-07',
-  },
-  {
-    id: 'REQ-004', userName: 'Phạm Thị Dung', userEmail: 'dung.pham@gmail.com',
-    budget: 20000000, purpose: 'Văn phòng', note: 'Word, Excel, duyệt web cơ bản',
-    currentBuild: [],
-    status: 'completed', createdAt: '2026-03-06',
-    staffBuild: [
-      { category: 'cpu', productId: 'cpu-1', productName: 'AMD Ryzen 5 5600X', price: 4990000 },
-      { category: 'ram', productId: 'ram-1', productName: 'Corsair 16GB DDR4', price: 1490000 },
-      { category: 'storage', productId: 'storage-1', productName: 'Samsung 980 500GB', price: 1890000 },
-    ],
-  },
-  {
-    id: 'REQ-005', userName: 'Hoàng Văn Em', userEmail: 'em.hoang@gmail.com',
-    budget: 10000000, purpose: 'Gaming', note: 'Budget thấp nhưng muốn chơi Valorant, LOL',
-    currentBuild: [],
-    status: 'rejected', rejectReason: 'Ngân sách quá thấp để build PC gaming, khuyên mua laptop gaming cũ', createdAt: '2026-03-05',
-  },
-  {
-    id: 'REQ-006', userName: 'Ngô Thị Phương', userEmail: 'phuong.ngo@gmail.com',
-    budget: 45000000, purpose: 'Streaming', note: 'Stream Valorant + OBS, cần encode tốt',
-    currentBuild: [],
-    status: 'pending', createdAt: '2026-03-09',
-  },
-];
-
-const formatPrice = (p: number) => p.toLocaleString('vi-VN') + 'đ';
+const formatPrice = (p: any) => Number(p || 0).toLocaleString('vi-VN') + 'đ';
 
 const FILTER_OPTIONS: { value: string; label: string }[] = [
   { value: 'all', label: 'Tất cả' },
@@ -89,7 +42,10 @@ const FILTER_OPTIONS: { value: string; label: string }[] = [
 ];
 
 export function StaffRequestsPage() {
-  const [requests, setRequests] = useState<BuildRequest[]>(MOCK_REQUESTS);
+  const [requests, setRequests] = useState<BuildRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedReq, setSelectedReq] = useState<BuildRequest | null>(null);
@@ -97,9 +53,57 @@ export function StaffRequestsPage() {
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [staffBuild, setStaffBuild] = useState<BuildItem[]>([]);
   const [showBuildPanel, setShowBuildPanel] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const [reqsRes, prodsRes] = await Promise.all([
+          StaffBuildRequestsApi.getAllStaffBuildRequests(),
+          getProductsApi({ limit: "1000" })
+        ]);
+        
+        if (mounted) {
+          const formatted = (reqsRes || []).map((req: any) => {
+            const noteLines = (req.customer_note || '').split('\n');
+            let purpose = 'Khác';
+            let note = '';
+            for (const line of noteLines) {
+              if (line.startsWith('Mục đích:')) purpose = line.replace('Mục đích:', '').trim();
+              else if (line.startsWith('Ghi chú:')) note = line.replace('Ghi chú:', '').trim();
+            }
+
+            return {
+              id: String(req.request_id || req.id || ''),
+              userName: req.user?.username || req.user?.name || req.user_id || 'Khách hàng',
+              userEmail: req.user?.email || '',
+              budget: req.budget_range || 0,
+              purpose,
+              note,
+              currentBuild: req.buildItems || req.userBuild || [],
+              status: req.status || 'pending',
+              rejectReason: req.rejectReason,
+              staffBuild: req.staffBuild || [],
+              createdAt: req.created_at ? req.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+            };
+          });
+          setRequests(formatted);
+          setProducts(prodsRes || []);
+        }
+      } catch (err) {
+        console.error('Fetch staff requests failed:', err);
+        if (mounted) toast.error('Lỗi tải danh sách yêu cầu tư vấn');
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const filtered = requests.filter((r) => {
-    const matchSearch = r.userName.toLowerCase().includes(search.toLowerCase()) || r.id.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = String(r.userName || '').toLowerCase().includes(search.toLowerCase()) || String(r.id || '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === 'all' || r.status === filterStatus;
     return matchSearch && matchStatus;
   });
@@ -118,29 +122,42 @@ export function StaffRequestsPage() {
     setShowRejectInput(false);
   };
 
-  const handleAccept = () => {
+  const updateStatus = async (status: RequestStatus, reason?: string) => {
     if (!selectedReq) return;
-    setRequests((prev) => prev.map((r) => r.id === selectedReq.id ? { ...r, status: 'accepted' as RequestStatus } : r));
-    setSelectedReq({ ...selectedReq, status: 'accepted' });
-    setShowBuildPanel(true);
-    toast.success(`Đã duyệt request ${selectedReq.id}`);
+    try {
+      setActionLoading(true);
+      await StaffBuildRequestsApi.updateStaffBuildRequest(selectedReq.id, {
+        status,
+        ...(reason ? { rejectReason: reason } : {})
+      });
+      setRequests((prev) => prev.map((r) => r.id === selectedReq.id ? { ...r, status, rejectReason: reason } : r));
+      setSelectedReq({ ...selectedReq, status, rejectReason: reason });
+      if (status === 'accepted') setShowBuildPanel(true);
+      else closeDetail();
+      
+      toast.success(status === 'rejected' ? 'Đã từ chối yêu cầu' : 'Đã duyệt yêu cầu');
+    } catch (err) {
+      console.error('Update request status failed:', err);
+      toast.error('Cập nhật trạng thái thất bại');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
+  const handleAccept = () => updateStatus('accepted');
   const handleReject = () => {
-    if (!selectedReq || !rejectReason.trim()) {
+    if (!rejectReason.trim()) {
       toast.error('Vui lòng nhập lý do từ chối');
       return;
     }
-    setRequests((prev) => prev.map((r) => r.id === selectedReq.id ? { ...r, status: 'rejected' as RequestStatus, rejectReason } : r));
-    toast.success(`Đã từ chối request ${selectedReq.id}`);
-    closeDetail();
+    updateStatus('rejected', rejectReason);
   };
 
   const addToBuild = (category: string, productId: string) => {
-    const product = products.find((p) => p.id === productId);
+    const product = products.find((p) => String(p.id) === String(productId));
     if (!product) return;
     const existing = staffBuild.findIndex((b) => b.category === category);
-    const item: BuildItem = { category, productId, productName: product.name, price: product.price };
+    const item: BuildItem = { category, productId: String(product.id), productName: product.name, price: product.price };
     if (existing >= 0) {
       setStaffBuild((prev) => prev.map((b, i) => i === existing ? item : b));
     } else {
@@ -152,15 +169,26 @@ export function StaffRequestsPage() {
     setStaffBuild((prev) => prev.filter((b) => b.category !== category));
   };
 
-  const handleSendBuild = () => {
+  const handleSendBuild = async () => {
     if (!selectedReq) return;
     if (staffBuild.length === 0) {
       toast.error('Vui lòng chọn ít nhất 1 linh kiện');
       return;
     }
-    setRequests((prev) => prev.map((r) => r.id === selectedReq.id ? { ...r, status: 'completed' as RequestStatus, staffBuild } : r));
-    toast.success(`Đã gửi cấu hình cho ${selectedReq.userName}`);
-    closeDetail();
+    try {
+      setActionLoading(true);
+      await StaffBuildRequestsApi.submitBuildForRequest(selectedReq.id, {
+        staffBuild
+      });
+      setRequests((prev) => prev.map((r) => r.id === selectedReq.id ? { ...r, status: 'completed' as RequestStatus, staffBuild } : r));
+      toast.success(`Đã gửi cấu hình cho khách hàng`);
+      closeDetail();
+    } catch (err) {
+      console.error('Send build failed:', err);
+      toast.error('Gửi cấu hình thất bại');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const buildTotal = staffBuild.reduce((s, b) => s + b.price, 0);
@@ -170,6 +198,15 @@ export function StaffRequestsPage() {
     border: '1px solid rgba(16,185,129,0.2)', background: 'rgba(255,255,255,0.05)',
     color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
   };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 0', color: '#9ca3af' }}>
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mb-4" />
+        <p>Đang tải danh sách yêu cầu...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -208,7 +245,7 @@ export function StaffRequestsPage() {
             </thead>
             <tbody>
               {filtered.map((r) => {
-                const st = STATUS_MAP[r.status];
+                const st = STATUS_MAP[r.status] || STATUS_MAP.pending;
                 return (
                   <tr key={r.id} style={{ borderBottom: '1px solid rgba(16,185,129,0.05)' }}>
                     <td style={{ padding: '14px 20px', fontSize: '14px', color: '#34d399', fontWeight: 600 }}>{r.id}</td>
@@ -235,7 +272,12 @@ export function StaffRequestsPage() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#6b7280', fontSize: '14px' }}>Không tìm thấy request nào</td></tr>
+                <tr>
+                  <td colSpan={7} style={{ padding: '60px 40px', textAlign: 'center', color: '#6b7280' }}>
+                    <ClipboardList className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                    <p style={{ fontSize: '16px', fontWeight: 500 }}>Không tìm thấy yêu cầu nào</p>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
@@ -260,9 +302,9 @@ export function StaffRequestsPage() {
                 <span style={{
                   display: 'inline-block', marginTop: '6px', padding: '3px 10px', borderRadius: '12px',
                   fontSize: '12px', fontWeight: 600,
-                  color: STATUS_MAP[selectedReq.status].color,
-                  background: `${STATUS_MAP[selectedReq.status].color}18`,
-                }}>{STATUS_MAP[selectedReq.status].label}</span>
+                  color: STATUS_MAP[selectedReq.status]?.color || '#fff',
+                  background: `${STATUS_MAP[selectedReq.status]?.color || '#fff'}18`,
+                }}>{STATUS_MAP[selectedReq.status]?.label || selectedReq.status}</span>
               </div>
               <button onClick={closeDetail} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex' }}>
                 <X style={{ width: 22, height: 22 }} />
@@ -291,15 +333,15 @@ export function StaffRequestsPage() {
               <div style={{ marginBottom: '20px' }}>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cấu hình khách đã chọn</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {selectedReq.currentBuild.map((b) => (
-                    <div key={b.category} style={{
+                  {selectedReq.currentBuild.map((b, i) => (
+                    <div key={b.category + i} style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       padding: '10px 14px', borderRadius: '10px', background: 'rgba(255,255,255,0.03)',
                       border: '1px solid rgba(16,185,129,0.08)',
                     }}>
                       <div>
                         <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase' }}>{PC_BUILDER_LABELS[b.category as keyof typeof PC_BUILDER_LABELS] ?? b.category}</span>
-                        <p style={{ fontSize: '14px', color: '#d1d5db', margin: '2px 0 0' }}>{b.productName}</p>
+                        <p style={{ fontSize: '14px', color: '#d1d5db', margin: '2px 0 0' }}>{b.productName || b.name}</p>
                       </div>
                       <span style={{ fontSize: '14px', color: '#10b981', fontWeight: 600 }}>{formatPrice(b.price)}</span>
                     </div>
@@ -329,7 +371,7 @@ export function StaffRequestsPage() {
                     }}>
                       <div>
                         <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase' }}>{PC_BUILDER_LABELS[b.category as keyof typeof PC_BUILDER_LABELS] ?? b.category}</span>
-                        <p style={{ fontSize: '14px', color: '#d1d5db', margin: '2px 0 0' }}>{b.productName}</p>
+                        <p style={{ fontSize: '14px', color: '#d1d5db', margin: '2px 0 0' }}>{b.productName || b.name}</p>
                       </div>
                       <span style={{ fontSize: '14px', color: '#a78bfa', fontWeight: 600 }}>{formatPrice(b.price)}</span>
                     </div>
@@ -360,7 +402,7 @@ export function StaffRequestsPage() {
                             flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             padding: '8px 12px', borderRadius: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)',
                           }}>
-                            <span style={{ fontSize: '13px', color: '#d1d5db' }}>{selected.productName}</span>
+                            <span style={{ fontSize: '13px', color: '#d1d5db' }}>{selected.productName || selected.name}</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 600 }}>{formatPrice(selected.price)}</span>
                               <button onClick={() => removeFromBuild(cat)} style={{
@@ -410,6 +452,7 @@ export function StaffRequestsPage() {
                   rows={3}
                   placeholder="Nhập lý do từ chối request này..."
                   style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+                  disabled={actionLoading}
                 />
               </div>
             )}
@@ -418,17 +461,19 @@ export function StaffRequestsPage() {
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {selectedReq.status === 'pending' && !showRejectInput && (
                 <>
-                  <button onClick={handleAccept} style={{
+                  <button onClick={handleAccept} disabled={actionLoading} style={{
                     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                     padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer',
                     background: 'linear-gradient(135deg, #10b981, #06b6d4)', color: '#fff', fontSize: '14px', fontWeight: 600,
+                    opacity: actionLoading ? 0.5 : 1
                   }}>
-                    <Check style={{ width: 18, height: 18 }} /> Duyệt
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check style={{ width: 18, height: 18 }} />} Duyệt
                   </button>
-                  <button onClick={() => setShowRejectInput(true)} style={{
+                  <button onClick={() => setShowRejectInput(true)} disabled={actionLoading} style={{
                     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                     padding: '12px', borderRadius: '12px', border: '1px solid rgba(239,68,68,0.3)', cursor: 'pointer',
                     background: 'rgba(239,68,68,0.1)', color: '#f87171', fontSize: '14px', fontWeight: 600,
+                    opacity: actionLoading ? 0.5 : 1
                   }}>
                     <XCircle style={{ width: 18, height: 18 }} /> Từ chối
                   </button>
@@ -437,11 +482,14 @@ export function StaffRequestsPage() {
 
               {showRejectInput && (
                 <>
-                  <button onClick={handleReject} style={{
+                  <button onClick={handleReject} disabled={actionLoading} style={{
                     flex: 1, padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer',
                     background: '#ef4444', color: '#fff', fontSize: '14px', fontWeight: 600,
-                  }}>Xác nhận từ chối</button>
-                  <button onClick={() => setShowRejectInput(false)} style={{
+                    opacity: actionLoading ? 0.5 : 1
+                  }}>
+                    {actionLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Xác nhận từ chối'}
+                  </button>
+                  <button onClick={() => setShowRejectInput(false)} disabled={actionLoading} style={{
                     flex: 1, padding: '12px', borderRadius: '12px', cursor: 'pointer',
                     border: '1px solid rgba(16,185,129,0.2)', background: 'transparent', color: '#9ca3af', fontSize: '14px', fontWeight: 600,
                   }}>Hủy</button>
@@ -449,18 +497,20 @@ export function StaffRequestsPage() {
               )}
 
               {selectedReq.status === 'accepted' && showBuildPanel && (
-                <button onClick={handleSendBuild} style={{
+                <button onClick={handleSendBuild} disabled={actionLoading} style={{
                   flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                   padding: '12px', borderRadius: '12px', border: 'none', cursor: 'pointer',
                   background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)', color: '#fff', fontSize: '14px', fontWeight: 600,
+                  opacity: actionLoading ? 0.5 : 1
                 }}>
-                  <Send style={{ width: 18, height: 18 }} /> Gửi cấu hình cho khách
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send style={{ width: 18, height: 18 }} />} Gửi cấu hình cho khách
                 </button>
               )}
 
-              <button onClick={closeDetail} style={{
+              <button onClick={closeDetail} disabled={actionLoading} style={{
                 padding: '12px 24px', borderRadius: '12px', cursor: 'pointer',
                 border: '1px solid rgba(16,185,129,0.2)', background: 'transparent', color: '#9ca3af', fontSize: '14px', fontWeight: 600,
+                opacity: actionLoading ? 0.5 : 1
               }}>Đóng</button>
             </div>
           </div>

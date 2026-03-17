@@ -448,11 +448,11 @@ function ProductCard({
         }`}
       >
         <Link to={`/product/${product.id}`} className="block">
-          <div className="aspect-video overflow-hidden">
+          <div className="w-full h-48 bg-white overflow-hidden flex items-center justify-center border-b border-gray-100/10">
             <img
               src={product.image}
               alt={product.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+              className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-300"
             />
           </div>
         </Link>
@@ -513,12 +513,13 @@ function ProductCard({
       <div className="flex flex-col md:flex-row">
         <Link
           to={`/product/${product.id}`}
-          className="w-full md:w-64 h-48 md:h-auto overflow-hidden block"
+          className="w-full md:w-64 h-48 md:h-auto bg-white overflow-hidden flex items-center justify-center border-r border-gray-100/10 block shrink-0"
         >
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-300 md:absolute md:inset-0"
+            style={{ position: 'relative' }}
           />
         </Link>
         <div className="flex-1 p-6">

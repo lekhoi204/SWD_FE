@@ -84,11 +84,13 @@ export function CartPage() {
               className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-4 md:p-6"
             >
               <div className="flex flex-col md:flex-row gap-4">
-                <img
-                  src={item.product.image}
-                  alt={item.product.name}
-                  className="w-full md:w-32 h-40 md:h-32 object-cover rounded-lg"
-                />
+                <div className="w-full md:w-32 h-40 md:h-32 bg-white rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-gray-100/10">
+                  <img
+                    src={item.product.image}
+                    alt={item.product.name}
+                    className="w-full h-full object-contain p-2"
+                  />
+                </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-bold text-lg">{item.product.name}</h3>

@@ -13,7 +13,7 @@ import {
 import ProfilePage from "@/pages/ProfilePage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
-import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
+// import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage"; // Moved to manager
 import { StaffLayout } from "@/layouts/StaffLayout";
 import { StaffDashboardPage } from "@/pages/staff/StaffDashboardPage";
 import { StaffRequestsPage } from "@/pages/staff/StaffRequestsPage";
@@ -22,8 +22,10 @@ import { ManagerDashboardPage } from "@/pages/manager/ManagerDashboardPage";
 import { ManagerProductsPage } from "@/pages/manager/ManagerProductsPage";
 import { ManagerCategoriesPage } from "@/pages/manager/ManagerCategoriesPage";
 import { ManagerPromotionsPage } from "@/pages/manager/ManagerPromotionsPage";
+import { AdminOrdersPage as ManagerOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { RequireRole } from "@/components/RequireRole";
 import { AuthModal } from "@/components/AuthModal";
+import { StaffPcBuildsPage } from "@/pages/staff/StaffPcBuildsPage";
 
 export default function App() {
   return (
@@ -47,12 +49,12 @@ export default function App() {
               <Route path="admin" element={<RequireRole roles={["admin"]}><AdminLayout /></RequireRole>}>
                 <Route index element={<AdminDashboardPage />} />
                 <Route path="users" element={<AdminUsersPage />} />
-                <Route path="orders" element={<AdminOrdersPage />} />
               </Route>
 
               <Route path="staff" element={<RequireRole roles={["staff", "admin"]}><StaffLayout /></RequireRole>}>
                 <Route index element={<StaffDashboardPage />} />
                 <Route path="requests" element={<StaffRequestsPage />} />
+                <Route path="builds" element={<StaffPcBuildsPage />} />
               </Route>
 
               <Route path="manager" element={<RequireRole roles={["manager", "admin"]}><ManagerLayout /></RequireRole>}>
@@ -60,6 +62,7 @@ export default function App() {
                 <Route path="products" element={<ManagerProductsPage />} />
                 <Route path="categories" element={<ManagerCategoriesPage />} />
                 <Route path="promotions" element={<ManagerPromotionsPage />} />
+                <Route path="orders" element={<ManagerOrdersPage />} />
               </Route>
             </Routes>
           </CartProvider>
