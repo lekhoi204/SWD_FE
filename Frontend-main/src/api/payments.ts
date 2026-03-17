@@ -1,19 +1,25 @@
 import { apiClient } from "./client";
 
-export async function getOnlineQr(): Promise<{ qr_url: string } | any> {
+export async function createQrFullPayment(): Promise<any> {
   const res = await apiClient<{ success: boolean; data: any }>(
-    `/payments/online/qr`,
+    `/payments/qr-full`,
+    { method: "POST" },
   );
   return res.data;
 }
 
-export async function getInstallmentQr(months: number): Promise<any> {
+export async function createQrInstallmentPayment(months: number): Promise<any> {
   const res = await apiClient<{ success: boolean; data: any }>(
-    `/payments/installment/qr`,
-    {
-      method: "POST",
-      body: { months },
-    },
+    `/payments/qr-installment`,
+    { method: "POST", body: { months } },
+  );
+  return res.data;
+}
+
+export async function createCodPayment(): Promise<any> {
+  const res = await apiClient<{ success: boolean; data: any }>(
+    `/payments/cod`,
+    { method: "POST" },
   );
   return res.data;
 }
@@ -30,3 +36,10 @@ export async function confirmPayment(
   );
   return res.data;
 }
+
+export default {
+  createQrFullPayment,
+  createQrInstallmentPayment,
+  createCodPayment,
+  confirmPayment,
+};

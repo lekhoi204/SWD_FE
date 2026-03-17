@@ -5,7 +5,11 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { useCart } from "@/context/CartContext";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import { getOnlineQr, getInstallmentQr, confirmPayment } from "@/api/payments";
+import {
+  createQrFullPayment,
+  createQrInstallmentPayment,
+  confirmPayment,
+} from "@/api/payments";
 import { getMyOrdersApi } from "@/api/orders";
 import type { OrderDetail } from "@/types";
 
@@ -47,9 +51,9 @@ export function PaymentPage() {
       setIsLoading(true);
       let qrData;
       if (type === "online") {
-        qrData = await getOnlineQr();
+        qrData = await createQrFullPayment();
       } else {
-        qrData = await getInstallmentQr(3); // Default to 3 months
+        qrData = await createQrInstallmentPayment(3); // Default to 3 months
       }
       setQrData(qrData);
       setSelectedOrder(order);

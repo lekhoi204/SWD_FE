@@ -8,7 +8,11 @@ import { useAuth } from "@/context/AuthContext";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { createOrderApi, CreateOrderRequest } from "@/api/orders";
 import { checkoutApi } from "@/api/checkout";
-import { getOnlineQr, getInstallmentQr, confirmPayment } from "@/api/payments";
+import {
+  createQrFullPayment,
+  createQrInstallmentPayment,
+  confirmPayment,
+} from "@/api/payments";
 import type { InstallmentPlan } from "@/types";
 
 const INSTALLMENT_PLANS: InstallmentPlan[] = [
@@ -142,9 +146,9 @@ export function CheckoutPage() {
       try {
         let qrData;
         if (paymentMethod === "full") {
-          qrData = await getOnlineQr();
+          qrData = await createQrFullPayment();
         } else {
-          qrData = await getInstallmentQr(selectedPlan.months);
+          qrData = await createQrInstallmentPayment(selectedPlan.months);
         }
         setQrUrl(qrData.qr_url);
         setStep("qr");

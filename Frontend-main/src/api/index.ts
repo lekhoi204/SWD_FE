@@ -47,3 +47,7 @@ export * as SpecificationsApi from "./specifications";
 export * as PaymentsApi from "./payments";
 export * as UploadsApi from "./uploads";
 export * as UserBuildsApi from "./userBuilds";
+export * as SpecificationsV2Api from "./specificationsV2";
+export * as CompatibilityApi from "./compatibility";
+export * as AiApi from "./ai";
+export * as StaffBuildRequestsApi from "./staffBuildRequests";

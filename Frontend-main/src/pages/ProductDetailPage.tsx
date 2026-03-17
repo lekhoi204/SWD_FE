@@ -9,6 +9,7 @@ import {
   getSpecsByProductIdApi,
   type Specification,
 } from "@/api/specifications";
+import * as SpecificationsV2Api from "@/api/specificationsV2";
 import { CATEGORY_LABELS } from "@/constants/categories";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import type { Product } from "@/types";
@@ -43,10 +44,50 @@ export function ProductDetailPage() {
     (async () => {
       try {
         setLoading(true);
-        const [data, specs] = await Promise.all([
-          getProductByIdApi(id),
-          getSpecsByProductIdApi(id).catch(() => []),
-        ]);
+        const data = await getProductByIdApi(id);
+
+        // Prefer new specifications-v2 JSON endpoint; fallback to legacy list
+        let specs: Specification[] = [];
+        try {
+          const jsonSpecs = await SpecificationsV2Api.getJsonSpecsApi(
+            id as string,
+          );
+          if (Array.isArray(jsonSpecs)) {
+            specs = jsonSpecs.map((s: any, idx: number) => {
+              if (s.spec_name && s.spec_value)
+                return {
+                  spec_id: s.spec_id ?? idx,
+                  product_id: s.product_id ?? Number(id),
+                  spec_name: s.spec_name,
+                  spec_value: s.spec_value,
+                } as Specification;
+              return {
+                spec_id: s.spec_id ?? idx,
+                product_id: s.product_id ?? Number(id),
+                spec_name: String(s.name ?? s.key ?? `spec_${idx}`),
+                spec_value: String(s.value ?? ""),
+              } as Specification;
+            });
+          } else if (jsonSpecs && typeof jsonSpecs === "object") {
+            specs = Object.keys(jsonSpecs).map((k, idx) => ({
+              spec_id: idx + 1,
+              product_id: Number(id),
+              spec_name: k,
+              spec_value: String((jsonSpecs as any)[k]),
+            }));
+          }
+        } catch (err) {
+          // ignore and fallback
+        }
+
+        if (specs.length === 0) {
+          try {
+            specs = await getSpecsByProductIdApi(id).catch(() => []);
+          } catch (err) {
+            specs = [];
+          }
+        }
+
         if (mounted) {
           setProduct(data);
           setSpecifications(specs);
