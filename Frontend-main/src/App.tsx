@@ -12,6 +12,7 @@ import {
   ProfilePage,
   MyOrdersPage,
 } from "@/pages";
+import { PaymentSuccessPage } from "@/pages/PaymentSuccessPage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
 // import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage"; // Moved to manager
@@ -49,6 +50,7 @@ export default function App() {
                 <Route path="checkout" element={<CheckoutPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="orders" element={<MyOrdersPage />} />
+                <Route path="payment/success" element={<PaymentSuccessPage />} />
               </Route>
 
               <Route

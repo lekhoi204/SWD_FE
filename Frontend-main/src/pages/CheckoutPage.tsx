@@ -11,7 +11,6 @@ import { createOrderApi, CreateOrderRequest } from "@/api/orders";
 import {
   createQrFullPayment,
   createQrInstallmentPayment,
-  confirmPayment,
 } from "@/api/payments";
 import { getPromotionByCodeApi } from "@/api/promotions";
 import type { InstallmentPlan } from "@/types";
@@ -52,12 +51,25 @@ export function CheckoutPage() {
   const [appliedPromotion, setAppliedPromotion] = useState<any>(null);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
 
-  // Auto-select all cart items on component mount
+  // Auto-select all cart items on component mount and check for payment success
   useEffect(() => {
     if (cart.length > 0 && selectedCartItems.length === 0) {
       setSelectedCartItems(cart.map((item) => item.cart_item_id));
     }
-  }, [cart, selectedCartItems.length]);
+
+    // Check for payment success from VNPay return
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("vnp_ResponseCode") === "00" || params.get("success") === "true") {
+      setStep("success");
+      loadCart();
+      toast.success("Thanh toán thành công!");
+      // Remove query params from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setTimeout(() => {
+        navigate("/");
+      }, 5000);
+    }
+  }, [cart, selectedCartItems.length, navigate, loadCart]);
 
   const selectedPlan = INSTALLMENT_PLANS.find((p) => p.id === installmentPlan)!;
   const selectedAmount = cart
@@ -163,19 +175,27 @@ export function CheckoutPage() {
         return;
       }
 
-      // Generate QR code for online/installment payment
+      // Generate payment URL for online/installment payment
       try {
-        let qrData;
+        let paymentData;
         if (paymentMethod === "full") {
-          qrData = await createQrFullPayment();
+          paymentData = await createQrFullPayment();
         } else {
-          qrData = await createQrInstallmentPayment(selectedPlan.months);
+          paymentData = await createQrInstallmentPayment(selectedPlan.months);
         }
-        setQrUrl(qrData.qr_url);
+
+        // If API returns a direct URL (VNPAY mock for testing)
+        if (paymentData.payment_url || (paymentData.qr_url && paymentData.qr_url.startsWith("http") && !paymentData.qr_url.includes("base64"))) {
+          const redirectUrl = paymentData.payment_url || paymentData.qr_url;
+          window.location.href = redirectUrl;
+          return;
+        }
+
+        setQrUrl(paymentData.qr_url);
         setStep("qr");
       } catch (qrError) {
-        console.error("QR generation error:", qrError);
-        toast.error("Không thể tạo mã QR. Vui lòng thử lại.");
+        console.error("Payment generation error:", qrError);
+        toast.error("Không thể tạo liên kết thanh toán. Vui lòng thử lại.");
         setStep("payment");
       }
     } catch (error: any) {
@@ -284,34 +304,10 @@ export function CheckoutPage() {
               bạn
             </p>
 
-            <button
-              onClick={async () => {
-                try {
-                  setIsLoading(true);
-                  await confirmPayment("Đã thanh toán thành công");
-                  toast.success("Thanh toán thành công!");
-                  // Clear cart after successful payment
-                  await loadCart();
-                  setTimeout(() => {
-                    setStep("success");
-                    setTimeout(() => navigate("/"), 2000);
-                  }, 1500);
-                } catch (error: any) {
-                  console.error("Confirm payment error:", error);
-                  toast.error(error.message || "Không thể xác nhận thanh toán");
-                } finally {
-                  setIsLoading(false);
-                }
-              }}
-              disabled={isLoading}
-              className="w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-bold text-lg hover:scale-105 transition-transform disabled:opacity-50"
-            >
-              {isLoading ? (
-                <Loader className="w-5 h-5 animate-spin mx-auto" />
-              ) : (
-                "Đã thanh toán"
-              )}
-            </button>
+            <div className="text-center text-sm text-purple-300 bg-purple-500/10 rounded-lg p-4">
+              <Loader className="w-5 h-5 animate-spin mx-auto mb-2 text-purple-400" />
+              Sau khi thanh toán, hệ thống sẽ tự động cập nhật trạng thái đơn hàng.
+            </div>
           </div>
         </div>
       </div>
@@ -572,10 +568,10 @@ export function CheckoutPage() {
                     />
                     <div>
                       <p className="font-semibold">
-                        Thanh toán toàn bộ (QR Code)
+                        Thanh toán toàn bộ (VNPay)
                       </p>
                       <p className="text-sm text-gray-400">
-                        Thanh toán ngay bằng mã QR
+                        Thanh toán ngay qua cổng VNPay
                       </p>
                     </div>
                   </label>
@@ -601,9 +597,9 @@ export function CheckoutPage() {
                       className="w-4 h-4"
                     />
                     <div>
-                      <p className="font-semibold">Trả góp (QR Code)</p>
+                      <p className="font-semibold">Trả góp (VNPay)</p>
                       <p className="text-sm text-gray-400">
-                        Chia đơn hàng thành nhiều kỳ
+                        Chia đơn hàng thành nhiều kỳ thanh toán
                       </p>
                     </div>
                   </label>
