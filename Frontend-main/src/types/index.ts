@@ -97,15 +97,19 @@ export type PaymentInfo = {
   order_status?: string;
 };
 
-export type VietQRData = {
+export type VNPayData = {
   payment_id: number;
-  bank_info: {
+  payment_url?: string;
+  bank_info?: {
     bank_name: string;
     account_no: string;
   };
   total_amount: number;
-  qr_url: string;
+  qr_url?: string;
 };
+
+/** @deprecated Use VNPayData instead */
+export type VietQRData = VNPayData;
 
 export type InstallmentPlan = {
   id: string;

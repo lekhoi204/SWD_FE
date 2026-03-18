@@ -3,12 +3,10 @@ import { QrCode, Clock, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import { useCart } from "@/context/CartContext";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import {
   createQrFullPayment,
   createQrInstallmentPayment,
-  confirmPayment,
 } from "@/api/payments";
 import { getMyOrdersApi } from "@/api/orders";
 import type { OrderDetail } from "@/types";
@@ -16,7 +14,7 @@ import type { OrderDetail } from "@/types";
 export function PaymentPage() {
   const { user } = useAuth();
   const { isDark } = useTheme();
-  const { loadCart, clearCart } = useCart();
+
   const [orders, setOrders] = useState<OrderDetail[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
@@ -26,6 +24,14 @@ export function PaymentPage() {
   useEffect(() => {
     if (user?.user_id) {
       loadOrders();
+
+      // Check for payment success from VNPay return
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("vnp_ResponseCode") === "00" || params.get("success") === "true") {
+        toast.success("Thanh toán thành công!");
+        // Remove query params from URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
     }
   }, [user?.user_id]);
 
@@ -49,40 +55,36 @@ export function PaymentPage() {
   ) => {
     try {
       setIsLoading(true);
-      let qrData;
+      let res;
       if (type === "online") {
-        qrData = await createQrFullPayment();
+        res = await createQrFullPayment();
       } else {
-        qrData = await createQrInstallmentPayment(3); // Default to 3 months
+        res = await createQrInstallmentPayment(3); // Default to 3 months
       }
-      setQrData(qrData);
+
+      // If it's a redirect URL (VNPay mock)
+      if (
+        res.payment_url ||
+        (res.qr_url &&
+          res.qr_url.startsWith("http") &&
+          !res.qr_url.includes("base64"))
+      ) {
+        window.location.href = res.payment_url || res.qr_url;
+        return;
+      }
+
+      setQrData(res);
       setSelectedOrder(order);
       setShowQr(true);
     } catch (error: any) {
-      console.error("Generate QR error:", error);
-      toast.error(error.message || "Không thể tạo mã QR");
+      console.error("Generate payment error:", error);
+      toast.error(error.message || "Không thể tạo liên kết thanh toán");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleConfirmPayment = async () => {
-    if (!selectedOrder) return;
-    try {
-      setIsLoading(true);
-      await confirmPayment("Đã thanh toán thành công");
-      toast.success("Đã xác nhận thanh toán");
-      setShowQr(false);
-      // Clear cart and reload orders after successful payment
-      await clearCart();
-      await loadOrders();
-    } catch (error: any) {
-      console.error("Confirm payment error:", error);
-      toast.error(error.message || "Không thể xác nhận thanh toán");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -212,7 +214,7 @@ export function PaymentPage() {
                       className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       <QrCode className="w-5 h-5" />
-                      Thanh toán (QR)
+                      Thanh toán VNPay
                     </button>
                   )}
                 {order.status === "Pending" &&
@@ -223,7 +225,7 @@ export function PaymentPage() {
                       className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       <QrCode className="w-5 h-5" />
-                      Thanh toán kỳ (QR)
+                      Thanh toán kỳ VNPay
                     </button>
                   )}
                 <button className="flex-1 px-6 py-3 bg-white/10 rounded-lg font-semibold hover:bg-white/20 transition-colors">
@@ -296,29 +298,21 @@ export function PaymentPage() {
               </>
             )}
 
-            <p className="text-sm text-gray-400 text-center mb-6">
+            <p className="text-sm text-gray-400 text-center mb-4">
               Quét mã QR này bằng ứng dụng ngân hàng hoặc ví điện tử
             </p>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowQr(false)}
-                className="flex-1 py-2 bg-white/10 rounded-lg font-semibold hover:bg-white/20 transition-colors"
-              >
-                Đóng
-              </button>
-              <button
-                onClick={handleConfirmPayment}
-                disabled={isLoading}
-                className="flex-1 py-2 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50"
-              >
-                {isLoading ? (
-                  <Loader className="w-5 h-5 animate-spin mx-auto" />
-                ) : (
-                  "Xác nhận thanh toán"
-                )}
-              </button>
+            <div className="text-center text-sm text-purple-300 bg-purple-500/10 rounded-lg p-3 mb-4">
+              <Loader className="w-4 h-4 animate-spin mx-auto mb-1 text-purple-400" />
+              Sau khi thanh toán, hệ thống sẽ tự động cập nhật.
             </div>
+
+            <button
+              onClick={() => setShowQr(false)}
+              className="w-full py-2 bg-white/10 rounded-lg font-semibold hover:bg-white/20 transition-colors"
+            >
+              Đóng
+            </button>
           </div>
         </div>
       )}
