@@ -193,14 +193,17 @@ export function BuildModal({
                 onConfirm(name.trim());
               }
             }}
-            disabled={loading}
+            disabled={loading || (mode === "choose" && selectedIndex === null)}
             style={{
               flex: 1,
               padding: 10,
               borderRadius: 8,
-              background: "linear-gradient(135deg,#7c3aed,#3b82f6)",
-              color: "#fff",
+              background: (mode === "choose" && selectedIndex === null) 
+                ? "rgba(255,255,255,0.05)"
+                : "linear-gradient(135deg,#7c3aed,#3b82f6)",
+              color: (mode === "choose" && selectedIndex === null) ? "#6b7280" : "#fff",
               fontWeight: 700,
+              cursor: (loading || (mode === "choose" && selectedIndex === null)) ? "not-allowed" : "pointer",
             }}
           >
             {loading

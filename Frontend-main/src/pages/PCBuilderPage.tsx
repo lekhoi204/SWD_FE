@@ -304,7 +304,7 @@ export function PCBuilderPage() {
     (async () => {
       try {
         setProductsLoading(true);
-        const prods = await getProductsApi();
+        const prods = await getProductsApi({ limit: "1000" });
         if (mounted) setAllProducts(prods);
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -499,33 +499,61 @@ export function PCBuilderPage() {
   };
 
   const handleChooseConfirm = async (value: any) => {
-    const pick = value as any;
+    let pick = value as any;
     if (!pick) {
       setModalOpen(false);
       return;
     }
+
     try {
+      setModalLoading(true);
+
+      // Fetch full build detail if items are missing (list API usually doesn't include them)
+      const buildId = pick.user_build_id || pick.id;
+      if (buildId && (!pick.items || pick.items.length === 0)) {
+        try {
+          const full = await UserBuildsApi.getUserBuildById(String(buildId));
+          if (full) pick = full;
+        } catch (e) {
+          console.error("Failed to fetch full build detail:", e);
+        }
+      }
+
+      const items: any[] = pick.items || pick.build_items || pick.data?.items || [];
+      if (items.length === 0) {
+        toast.info("Bản build này không có linh kiện nào hoặc chưa được tải xong");
+        return;
+      }
+
+      if (allProducts.length === 0) {
+        toast.error("Dữ liệu linh kiện chưa tải xong, vui lòng thử lại sau giây lát");
+        return;
+      }
+
       const newComponents = PC_BUILDER_CATEGORIES.map((category) => {
-        const item = (pick.items || []).find(
-          (it: any) =>
-            it.category === category ||
-            (it.product_id && Number(it.product_id)),
-        );
+        // Find saved item by matching its product's category
+        const item = items.find((it: any) => {
+          const prodId = Number(it.product_id || it.productId || it.id);
+          const p = allProducts.find((p) => Number(p.id) === prodId);
+          return p?.category === category;
+        });
+
         let product = null;
         if (item) {
-          const found = allProducts.find(
-            (p) => Number(p.id) === Number(item.product_id),
-          );
+          const pid = Number(item.product_id || item.productId || item.id);
+          const found = allProducts.find((p) => Number(p.id) === pid);
           product = found ?? null;
         }
         return { category, product };
       });
+
       setBuildComponents(newComponents);
-      toast.success("Đã tải build của bạn");
+      toast.success("Đã tải cấu hình build của bạn");
     } catch (err) {
       console.error("Apply build failed", err);
       toast.error("Không thể áp dụng build");
     } finally {
+      setModalLoading(false);
       setModalOpen(false);
     }
   };
