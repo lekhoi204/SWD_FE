@@ -248,7 +248,7 @@ export function StaffPcBuildsPage() {
       <div style={{ paddingBottom: "40px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
           <div>
-            <h1 style={{ fontSize: "28px", fontWeight: 700, margin: 0 }}>Tạo cấu hình PC mới</h1>
+            <h1 style={{ fontSize: "28px", fontWeight: 700, margin: 0, color: isDark ? "#fff" : "#111" }}>Tạo cấu hình PC mới</h1>
             <p style={{ color: "#9ca3af", margin: "4px 0 0" }}>Chọn các linh kiện để ghép thành 1 PC Build</p>
           </div>
           <button
@@ -436,7 +436,7 @@ export function StaffPcBuildsPage() {
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px" }}>
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: 0 }}>Quản lý Cấu hình PC (Builds)</h1>
+          <h1 style={{ fontSize: "28px", fontWeight: 700, margin: 0, color: isDark ? "#fff" : "#111" }}>Quản lý Cấu hình PC (Builds)</h1>
           <p style={{ color: "#9ca3af", margin: "4px 0 0" }}>Quản lý các bản ghép linh kiện sẵn của cửa hàng</p>
         </div>
         <button
@@ -464,11 +464,11 @@ export function StaffPcBuildsPage() {
               <tr key={b.pc_build_id} style={{ borderBottom: "1px solid rgba(139,92,246,0.05)" }}>
                 <td style={{ padding: "16px 20px", fontSize: "14px", color: "#6b7280" }}>#{b.pc_build_id}</td>
                 <td style={{ padding: "16px 20px", fontSize: "14px", fontWeight: 600, color: isDark ? "#fff" : "#111" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", color: isDark ? "#fff" : "#111" }}>
                     <div className="w-10 h-10 aspect-square bg-white border border-gray-100/10 rounded-md flex items-center justify-center p-1">
                       <img src={b.image_url || "https://file.hstatic.net/200000636033/file/icon3_5c59c1dc52ec4b81a94a3edba293e895.png"} alt="" className="w-full h-full object-contain" />
                     </div>
-                    {b.build_name}
+                    <span style={{ color: isDark ? "#fff" : "#111" }}>{b.build_name}</span>
                   </div>
                 </td>
                 <td style={{ padding: "16px 20px", fontSize: "15px", color: "#10b981", fontWeight: 600 }}>{formatPrice(b.total_price || 0)}</td>

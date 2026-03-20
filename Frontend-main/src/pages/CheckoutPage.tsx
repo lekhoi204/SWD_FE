@@ -54,7 +54,6 @@ export function CheckoutPage() {
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
 
-  // Auto-select all cart items on component mount
   useEffect(() => {
     if (cart.length > 0 && selectedCartItems.length === 0) {
       setSelectedCartItems(cart.map((item) => item.cart_item_id));
@@ -149,13 +148,10 @@ export function CheckoutPage() {
         promotion_code: appliedPromotion ? appliedPromotion.code : null,
       };
 
-      // All orders directly use createOrderApi since checkoutApi is deprecated
       const orderResult = await createOrderApi(orderData);
       setOrderId(orderResult.order_id);
 
-      // If COD, skip QR generation and go to success
       if (paymentMethod === "cod") {
-        // Clear cart after successful order
         await loadCart();
         toast.success("Đặt hàng thành công! Chúng tôi sẽ liên hệ sớm.");
         setTimeout(() => {
@@ -165,7 +161,6 @@ export function CheckoutPage() {
         return;
       }
 
-      // VietQR: lấy link ảnh QR để hiển thị trên trang (không redirect)
       try {
         let paymentData: any;
         if (paymentMethod === "full") {
@@ -204,7 +199,7 @@ export function CheckoutPage() {
   if (!user) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
-        <p className="text-lg text-gray-400 mb-6">
+        <p className={`text-lg mb-6 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
           Vui lòng đăng nhập để thanh toán.
         </p>
       </div>
@@ -214,7 +209,7 @@ export function CheckoutPage() {
   if (cart.length === 0 && step !== "success") {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
-        <p className="text-lg text-gray-400 mb-6">Giỏ hàng trống.</p>
+        <p className={`text-lg mb-6 ${isDark ? "text-gray-400" : "text-gray-600"}`}>Giỏ hàng trống.</p>
       </div>
     );
   }
@@ -223,16 +218,16 @@ export function CheckoutPage() {
     return (
       <div className="container mx-auto px-4 py-20">
         <div className="max-w-md mx-auto text-center">
-          <div className="w-32 h-32 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Check className="w-16 h-16 text-green-400" />
+          <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 ${isDark ? "bg-green-500/20" : "bg-green-100"}`}>
+            <Check className={`w-16 h-16 ${isDark ? "text-green-400" : "text-green-600"}`} />
           </div>
-          <h2 className="text-3xl font-bold mb-4">Đặt hàng thành công!</h2>
-          <p className="text-gray-400 mb-8">
+          <h2 className={`text-3xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>Đặt hàng thành công!</h2>
+          <p className={`mb-8 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
             {paymentMethod === "cod"
               ? "Đơn hàng sẽ được giao COD. Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất."
               : "Cảm ơn bạn đã thanh toán. Đơn hàng sẽ được xử lý ngay."}
           </p>
-          <div className="animate-pulse text-purple-400">
+          <div className={`animate-pulse ${isDark ? "text-purple-400" : "text-purple-600"}`}>
             Đang chuyển hướng...
           </div>
         </div>
@@ -255,15 +250,36 @@ export function CheckoutPage() {
     }
   };
 
-  // Mã nội dung chuyển khoản để đối soát (dùng order_id)
   const transferContentCode = orderId != null ? `ORDER${orderId}` : "";
   const displayAmount = paymentMethod === "installment" ? totalWithInterest : subtotal;
   const bankInfo = qrPaymentData as Record<string, unknown> | null;
 
-  // Luôn dùng thông tin tài khoản VietQR cố định
   const VIETQR_ACCOUNT_NO = bankInfo?.accountNo ?? bankInfo?.account_no ?? "9931330034";
   const VIETQR_ACCOUNT_NAME = bankInfo?.accountName ?? bankInfo?.account_name ?? "TRAN ANH TU";
   const VIETQR_BANK_NAME = bankInfo?.bankName ?? bankInfo?.bank_name ?? "VCB – Vietcombank";
+
+  // Input style helper
+  const inputClass = isDark
+    ? "w-full px-4 py-3 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400 text-white placeholder-gray-500"
+    : "w-full px-4 py-3 bg-white border border-pink-400 rounded-lg focus:outline-none focus:border-pink-500 text-black placeholder-gray-400";
+
+  // Section card style
+  const sectionCard = isDark
+    ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6"
+    : "bg-white rounded-xl border border-pink-300 p-6 shadow-sm";
+
+  // Label style
+  const labelClass = isDark ? "text-sm font-semibold mb-2 text-white" : "text-sm font-semibold mb-2 text-black";
+  const labelPinkClass = isDark ? "text-sm font-semibold mb-2 text-red-400" : "text-sm font-semibold mb-2 text-red-500";
+
+  // Text colors
+  const textPrimary = isDark ? "text-white" : "text-black";
+  const textSecondary = isDark ? "text-gray-400" : "text-gray-600";
+  const textPurple = isDark ? "text-purple-400" : "text-purple-600";
+  const textGreen = isDark ? "text-green-400" : "text-green-600";
+  const borderColor = isDark ? "border-purple-500/30" : "border-pink-300";
+  const selectedBorder = isDark ? "rgb(168, 85, 247)" : "rgb(236, 72, 153)";
+  const selectedBg = isDark ? "rgba(168, 85, 247, 0.1)" : "rgba(236, 72, 153, 0.1)";
 
   if (step === "qr") {
     return (
@@ -273,21 +289,21 @@ export function CheckoutPage() {
         />
 
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6 text-center text-white">
+          <h1 className={`text-2xl font-bold mb-6 text-center ${textPrimary}`}>
             Mã QR chuyển khoản ngân hàng
           </h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr,340px] gap-8 items-start">
             {/* Trái: QR + thông tin chuyển khoản */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 lg:p-8">
+            <div className={`rounded-xl p-6 lg:p-8 ${isDark ? "bg-white/5 backdrop-blur-sm border border-white/10" : "bg-white border border-pink-300 shadow-sm"}`}>
               <div className="flex items-center gap-3 mb-6">
-                <span className="text-lg font-semibold text-purple-300">VietQR</span>
+                <span className={`text-lg font-semibold ${textPurple}`}>VietQR</span>
               </div>
 
               {qrUrl ? (
                 <>
                   <div className="flex justify-center mb-8">
-                    <div className="w-[240px] h-[240px] rounded-xl overflow-hidden bg-white flex-shrink-0 border border-white/20">
+                    <div className={`w-[240px] h-[240px] rounded-xl overflow-hidden bg-white flex-shrink-0 ${isDark ? "border border-white/20" : "border border-pink-300"}`}>
                       <img
                         src={qrUrl}
                         alt="Mã QR chuyển khoản"
@@ -296,48 +312,48 @@ export function CheckoutPage() {
                     </div>
                   </div>
 
-                  <p className="text-center text-gray-400 text-sm mb-8">
+                  <p className={`text-center text-sm mb-8 ${textSecondary}`}>
                     Quét mã bằng app ngân hàng hoặc ví điện tử (napas 247)
                   </p>
 
-                  <h2 className="text-lg font-semibold text-white mb-3">
+                  <h2 className={`text-lg font-semibold mb-3 ${textPrimary}`}>
                     Thông tin chuyển khoản ngân hàng
                   </h2>
                   {transferContentCode && (
-                    <p className="text-red-400 text-sm font-medium mb-4">
+                    <p className="text-red-500 text-sm font-medium mb-4">
                       Vui lòng chuyển đúng nội dung <strong>{transferContentCode}</strong> để chúng tôi có thể xác nhận thanh toán.
                     </p>
                   )}
-                  <div className="overflow-hidden rounded-lg border border-white/10">
+                  <div className={`overflow-hidden rounded-lg border ${isDark ? "border-white/10" : "border-pink-200"}`}>
                     <table className="w-full text-sm">
-                      <tbody className="divide-y divide-white/10">
-                        <tr className="bg-white/5">
-                          <td className="py-3 px-4 text-gray-400 w-[140px]">Tên tài khoản</td>
-                          <td className="py-3 px-4 text-white font-medium">
+                      <tbody className={`divide-y ${isDark ? "divide-white/10" : "divide-pink-100"}`}>
+                        <tr className={isDark ? "bg-white/5" : "bg-pink-50"}>
+                          <td className={`py-3 px-4 w-[140px] ${textSecondary}`}>Tên tài khoản</td>
+                          <td className={`py-3 px-4 font-medium ${textPrimary}`}>
                             {VIETQR_ACCOUNT_NAME}
                           </td>
                         </tr>
                         <tr>
-                          <td className="py-3 px-4 text-gray-400">Số tài khoản</td>
-                          <td className="py-3 px-4 text-white font-medium">
+                          <td className={`py-3 px-4 ${textSecondary}`}>Số tài khoản</td>
+                          <td className={`py-3 px-4 font-medium ${textPrimary}`}>
                             {VIETQR_ACCOUNT_NO}
                           </td>
                         </tr>
-                        <tr className="bg-white/5">
-                          <td className="py-3 px-4 text-gray-400">Ngân hàng</td>
-                          <td className="py-3 px-4 text-white">
+                        <tr className={isDark ? "bg-white/5" : "bg-pink-50"}>
+                          <td className={`py-3 px-4 ${textSecondary}`}>Ngân hàng</td>
+                          <td className={`py-3 px-4 ${textPrimary}`}>
                             {VIETQR_BANK_NAME}
                           </td>
                         </tr>
                         <tr>
-                          <td className="py-3 px-4 text-gray-400">Số tiền</td>
-                          <td className="py-3 px-4 text-white font-semibold">
+                          <td className={`py-3 px-4 ${textSecondary}`}>Số tiền</td>
+                          <td className={`py-3 px-4 font-semibold ${textPrimary}`}>
                             {displayAmount.toLocaleString("vi-VN")} ₫
                           </td>
                         </tr>
-                        <tr className="bg-white/5">
-                          <td className="py-3 px-4 text-gray-400">Nội dung</td>
-                          <td className="py-3 px-4 text-white font-mono font-semibold">
+                        <tr className={isDark ? "bg-white/5" : "bg-pink-50"}>
+                          <td className={`py-3 px-4 ${textSecondary}`}>Nội dung</td>
+                          <td className={`py-3 px-4 font-mono font-semibold ${textPrimary}`}>
                             {transferContentCode || "—"}
                           </td>
                         </tr>
@@ -346,7 +362,7 @@ export function CheckoutPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <div className={`flex flex-col items-center justify-center py-16 ${textSecondary}`}>
                   <Loader className="w-12 h-12 animate-spin mb-4" />
                   <span>Đang tạo mã QR...</span>
                 </div>
@@ -354,32 +370,32 @@ export function CheckoutPage() {
             </div>
 
             {/* Phải: Thông tin đơn hàng */}
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 lg:sticky lg:top-24">
-              <p className="text-green-400 font-medium mb-5">
+            <div className={`rounded-xl p-6 lg:sticky lg:top-24 ${isDark ? "bg-white/5 backdrop-blur-sm border border-white/10" : "bg-white border border-pink-300 shadow-sm"}`}>
+              <p className={`font-medium mb-5 ${textGreen}`}>
                 Cảm ơn bạn. Đơn hàng của bạn đã được nhận.
               </p>
               <ul className="space-y-3 text-sm mb-6">
                 <li className="flex justify-between">
-                  <span className="text-gray-400">Mã đơn hàng</span>
-                  <span className="text-white font-semibold">#{orderId ?? "—"}</span>
+                  <span className={textSecondary}>Mã đơn hàng</span>
+                  <span className={`font-semibold ${textPrimary}`}>#{orderId ?? "—"}</span>
                 </li>
                 <li className="flex justify-between">
-                  <span className="text-gray-400">Ngày</span>
-                  <span className="text-white">{new Date().toLocaleDateString("vi-VN")}</span>
+                  <span className={textSecondary}>Ngày</span>
+                  <span className={textPrimary}>{new Date().toLocaleDateString("vi-VN")}</span>
                 </li>
                 <li className="flex justify-between">
-                  <span className="text-gray-400">Email</span>
-                  <span className="text-white truncate max-w-[160px]" title={formData.email}>{formData.email || "—"}</span>
+                  <span className={textSecondary}>Email</span>
+                  <span className={`truncate max-w-[160px] ${textPrimary}`} title={formData.email}>{formData.email || "—"}</span>
                 </li>
-                <li className="flex justify-between pt-3 border-t border-white/10">
-                  <span className="text-gray-400">Tổng cộng</span>
-                  <span className="text-white font-bold text-lg">
+                <li className={`flex justify-between pt-3 border-t ${isDark ? "border-white/10" : "border-pink-200"}`}>
+                  <span className={textSecondary}>Tổng cộng</span>
+                  <span className={`font-bold text-lg ${textPrimary}`}>
                     {displayAmount.toLocaleString("vi-VN")} ₫
                   </span>
                 </li>
                 <li className="flex justify-between">
-                  <span className="text-gray-400">Phương thức thanh toán</span>
-                  <span className="text-white">
+                  <span className={textSecondary}>Phương thức thanh toán</span>
+                  <span className={textPrimary}>
                     {paymentMethod === "full"
                       ? "Chuyển khoản ngân hàng (Quét mã QR)"
                       : "Trả góp (Quét mã QR)"}
@@ -391,7 +407,16 @@ export function CheckoutPage() {
                   type="button"
                   onClick={handleConfirmPaid}
                   disabled={isConfirming}
-                  className="w-full py-3 px-4 rounded-xl font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                  style={{
+                    background: isDark
+                      ? "linear-gradient(to right, rgb(16, 185, 129), rgb(6, 182, 212))"
+                      : "linear-gradient(to right, rgb(16, 185, 129), rgb(6, 182, 212))",
+                    color: "white",
+                    boxShadow: isDark
+                      ? "0 4px 14px rgba(16, 185, 129, 0.4)"
+                      : "0 4px 14px rgba(16, 185, 129, 0.5)",
+                  }}
+                  className={`w-full py-3 px-4 rounded-xl font-semibold hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-all`}
                 >
                   {isConfirming ? (
                     <>
@@ -416,7 +441,7 @@ export function CheckoutPage() {
         items={[{ label: "Giỏ hàng", to: "/cart" }, { label: "Thanh toán" }]}
       />
 
-      <h1 className="text-3xl md:text-4xl font-bold mb-8 bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+      <h1 className={`text-3xl md:text-4xl font-bold mb-8 ${isDark ? "bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent" : "text-black"}`}>
         Thanh toán
       </h1>
 
@@ -424,28 +449,28 @@ export function CheckoutPage() {
         <div className="lg:col-span-2">
           <div className="flex items-center gap-4 mb-8">
             <div
-              className={`flex items-center gap-2 ${step === "info" ? "text-purple-400" : "text-gray-400"}`}
+              className={`flex items-center gap-2 ${step === "info" ? textPurple : textSecondary}`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   step === "info"
                     ? "bg-purple-500/30 border-2 border-purple-400"
-                    : "bg-gray-700"
+                    : isDark ? "bg-gray-700" : "bg-gray-200"
                 }`}
               >
                 1
               </div>
               <span className="font-semibold hidden sm:inline">Thông tin</span>
             </div>
-            <div className="flex-1 h-px bg-purple-500/30" />
+            <div className={`flex-1 h-px ${isDark ? "bg-purple-500/30" : "bg-pink-300"}`} />
             <div
-              className={`flex items-center gap-2 ${step === "payment" ? "text-purple-400" : "text-gray-400"}`}
+              className={`flex items-center gap-2 ${step === "payment" ? textPurple : textSecondary}`}
             >
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
                   step === "payment"
                     ? "bg-purple-500/30 border-2 border-purple-400"
-                    : "bg-gray-700"
+                    : isDark ? "bg-gray-700" : "bg-gray-200"
                 }`}
               >
                 2
@@ -457,17 +482,17 @@ export function CheckoutPage() {
           {step === "info" && (
             <form onSubmit={handleSubmitInfo} className="space-y-6">
               {/* Select Items Section */}
-              <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6">
-                <h2 className="text-xl font-bold mb-6 text-purple-400">
+              <div className={sectionCard}>
+                <h2 className={`text-xl font-bold mb-6 ${textPurple}`}>
                   Chọn sản phẩm
                 </h2>
                 <div className="space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
+                  <label className={`flex items-center gap-3 cursor-pointer ${textPrimary}`}>
                     <input
                       type="checkbox"
                       checked={selectedCartItems.length === cart.length}
                       onChange={handleSelectAll}
-                      className="w-4 h-4 rounded"
+                      className={`w-4 h-4 rounded ${isDark ? "" : "accent-pink-500"}`}
                     />
                     <span className="font-semibold">Chọn tất cả</span>
                   </label>
@@ -475,22 +500,22 @@ export function CheckoutPage() {
                   {cart.map((item) => (
                     <label
                       key={item.cart_item_id}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-500/10 cursor-pointer transition-colors"
+                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${isDark ? "hover:bg-purple-500/10" : "hover:bg-pink-50"}`}
                     >
                       <input
                         type="checkbox"
                         checked={selectedCartItems.includes(item.cart_item_id)}
                         onChange={() => handleSelectItem(item.cart_item_id)}
-                        className="w-4 h-4 rounded"
+                        className={`w-4 h-4 rounded ${isDark ? "" : "accent-pink-500"}`}
                       />
                       <div className="flex-1">
-                        <p className="font-semibold">{item.product.name}</p>
-                        <p className="text-sm text-gray-400">
+                        <p className={`font-semibold ${textPrimary}`}>{item.product.name}</p>
+                        <p className={`text-sm ${textSecondary}`}>
                           {item.quantity} x{" "}
                           {item.product.price.toLocaleString("vi-VN")}₫
                         </p>
                       </div>
-                      <span className="text-purple-400 font-semibold">
+                      <span className={`font-semibold ${textPurple}`}>
                         {(item.product.price * item.quantity).toLocaleString(
                           "vi-VN",
                         )}
@@ -502,14 +527,14 @@ export function CheckoutPage() {
               </div>
 
               {/* Delivery Info Section */}
-              <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6">
-                <h2 className="text-xl font-bold mb-6 text-purple-400">
+              <div className={sectionCard}>
+                <h2 className={`text-xl font-bold mb-6 ${textPurple}`}>
                   Thông tin giao hàng
                 </h2>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold mb-2">
-                      Họ và tên <span className="text-red-400">*</span>
+                    <label className={labelClass}>
+                      Họ và tên <span className={labelPinkClass}>*</span>
                     </label>
                     <input
                       type="text"
@@ -517,15 +542,15 @@ export function CheckoutPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, fullName: e.target.value })
                       }
-                      className="w-full px-4 py-3 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400"
+                      className={inputClass}
                       placeholder="Nguyễn Văn A"
                       required
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold mb-2">
-                        Số điện thoại <span className="text-red-400">*</span>
+                      <label className={labelClass}>
+                        Số điện thoại <span className={labelPinkClass}>*</span>
                       </label>
                       <input
                         type="tel"
@@ -533,13 +558,13 @@ export function CheckoutPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, phone: e.target.value })
                         }
-                        className="w-full px-4 py-3 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400"
+                        className={inputClass}
                         placeholder="0901234567"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold mb-2">
+                      <label className={labelClass}>
                         Email
                       </label>
                       <input
@@ -548,14 +573,14 @@ export function CheckoutPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
                         }
-                        className="w-full px-4 py-3 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400"
+                        className={inputClass}
                         placeholder="email@example.com"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-2">
-                      Địa chỉ <span className="text-red-400">*</span>
+                    <label className={labelClass}>
+                      Địa chỉ <span className={labelPinkClass}>*</span>
                     </label>
                     <input
                       type="text"
@@ -563,14 +588,14 @@ export function CheckoutPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, address: e.target.value })
                       }
-                      className="w-full px-4 py-3 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400"
+                      className={inputClass}
                       placeholder="Số nhà, tên đường"
                       required
                     />
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold mb-2">
+                      <label className={labelClass}>
                         Thành phố/Tỉnh
                       </label>
                       <input
@@ -579,12 +604,12 @@ export function CheckoutPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, city: e.target.value })
                         }
-                        className="w-full px-4 py-3 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400"
+                        className={inputClass}
                         placeholder="TP. Hồ Chí Minh"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold mb-2">
+                      <label className={labelClass}>
                         Quận/Huyện
                       </label>
                       <input
@@ -593,13 +618,13 @@ export function CheckoutPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, district: e.target.value })
                         }
-                        className="w-full px-4 py-3 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400"
+                        className={inputClass}
                         placeholder="Quận 1"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold mb-2">
+                    <label className={labelClass}>
                       Ghi chú
                     </label>
                     <textarea
@@ -607,7 +632,7 @@ export function CheckoutPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, notes: e.target.value })
                       }
-                      className="w-full px-4 py-3 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400"
+                      className={inputClass}
                       placeholder="Ghi chú thêm (không bắt buộc)"
                       rows={3}
                     />
@@ -619,14 +644,14 @@ export function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => window.history.back()}
-                  className="flex-1 py-3 bg-white/10 rounded-lg font-semibold hover:bg-white/20 transition-colors"
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${isDark ? "bg-white/10 hover:bg-white/20 text-white" : "bg-gray-200 hover:bg-gray-300 text-black"}`}
                 >
                   <ArrowLeft className="w-5 h-5 inline mr-2" />
                   Quay lại
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform"
+                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform text-white"
                 >
                   Tiếp tục thanh toán
                 </button>
@@ -637,22 +662,16 @@ export function CheckoutPage() {
           {step === "payment" && (
             <div className="space-y-6">
               {/* Payment Method Selection */}
-              <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6">
-                <h2 className="text-xl font-bold mb-6 text-purple-400">
+              <div className={sectionCard}>
+                <h2 className={`text-xl font-bold mb-6 ${textPurple}`}>
                   Phương thức thanh toán
                 </h2>
                 <div className="space-y-3">
                   <label
-                    className="flex items-center gap-3 p-4 rounded-lg border-2 border-purple-500/30 cursor-pointer hover:border-purple-500 transition-colors"
+                    className="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
                     style={{
-                      borderColor:
-                        paymentMethod === "full"
-                          ? "rgb(168, 85, 247)"
-                          : undefined,
-                      backgroundColor:
-                        paymentMethod === "full"
-                          ? "rgba(168, 85, 247, 0.1)"
-                          : undefined,
+                      borderColor: paymentMethod === "full" ? selectedBorder : (isDark ? "rgba(168,85,247,0.3)" : "rgba(236,72,153,0.3)"),
+                      backgroundColor: paymentMethod === "full" ? selectedBg : undefined,
                     }}
                   >
                     <input
@@ -660,29 +679,21 @@ export function CheckoutPage() {
                       value="full"
                       checked={paymentMethod === "full"}
                       onChange={(e) => setPaymentMethod(e.target.value as any)}
-                      className="w-4 h-4"
+                      className={`w-4 h-4 ${isDark ? "" : "accent-pink-500"}`}
                     />
                     <div>
-                      <p className="font-semibold">
-                        Thanh toán toàn bộ
-                      </p>
-                      <p className="text-sm text-gray-400">
+                      <p className={`font-semibold ${textPrimary}`}>Thanh toán toàn bộ</p>
+                      <p className={`text-sm ${textSecondary}`}>
                         Thanh toán một lần bằng mã QR / chuyển khoản
                       </p>
                     </div>
                   </label>
 
                   <label
-                    className="flex items-center gap-3 p-4 rounded-lg border-2 border-purple-500/30 cursor-pointer hover:border-purple-500 transition-colors"
+                    className="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
                     style={{
-                      borderColor:
-                        paymentMethod === "installment"
-                          ? "rgb(168, 85, 247)"
-                          : undefined,
-                      backgroundColor:
-                        paymentMethod === "installment"
-                          ? "rgba(168, 85, 247, 0.1)"
-                          : undefined,
+                      borderColor: paymentMethod === "installment" ? selectedBorder : (isDark ? "rgba(168,85,247,0.3)" : "rgba(236,72,153,0.3)"),
+                      backgroundColor: paymentMethod === "installment" ? selectedBg : undefined,
                     }}
                   >
                     <input
@@ -690,27 +701,21 @@ export function CheckoutPage() {
                       value="installment"
                       checked={paymentMethod === "installment"}
                       onChange={(e) => setPaymentMethod(e.target.value as any)}
-                      className="w-4 h-4"
+                      className={`w-4 h-4 ${isDark ? "" : "accent-pink-500"}`}
                     />
                     <div>
-                      <p className="font-semibold">Trả góp</p>
-                      <p className="text-sm text-gray-400">
+                      <p className={`font-semibold ${textPrimary}`}>Trả góp</p>
+                      <p className={`text-sm ${textSecondary}`}>
                         Chia đơn hàng thành nhiều kỳ thanh toán
                       </p>
                     </div>
                   </label>
 
                   <label
-                    className="flex items-center gap-3 p-4 rounded-lg border-2 border-purple-500/30 cursor-pointer hover:border-purple-500 transition-colors"
+                    className="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
                     style={{
-                      borderColor:
-                        paymentMethod === "cod"
-                          ? "rgb(168, 85, 247)"
-                          : undefined,
-                      backgroundColor:
-                        paymentMethod === "cod"
-                          ? "rgba(168, 85, 247, 0.1)"
-                          : undefined,
+                      borderColor: paymentMethod === "cod" ? selectedBorder : (isDark ? "rgba(168,85,247,0.3)" : "rgba(236,72,153,0.3)"),
+                      backgroundColor: paymentMethod === "cod" ? selectedBg : undefined,
                     }}
                   >
                     <input
@@ -718,13 +723,11 @@ export function CheckoutPage() {
                       value="cod"
                       checked={paymentMethod === "cod"}
                       onChange={(e) => setPaymentMethod(e.target.value as any)}
-                      className="w-4 h-4"
+                      className={`w-4 h-4 ${isDark ? "" : "accent-pink-500"}`}
                     />
                     <div>
-                      <p className="font-semibold">
-                        Thanh toán khi nhận hàng (COD)
-                      </p>
-                      <p className="text-sm text-gray-400">
+                      <p className={`font-semibold ${textPrimary}`}>Thanh toán khi nhận hàng (COD)</p>
+                      <p className={`text-sm ${textSecondary}`}>
                         Thanh toán sau khi nhận hàng
                       </p>
                     </div>
@@ -734,24 +737,18 @@ export function CheckoutPage() {
 
               {/* Installment Plans */}
               {paymentMethod === "installment" && (
-                <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6">
-                  <h2 className="text-xl font-bold mb-6 text-purple-400">
+                <div className={sectionCard}>
+                  <h2 className={`text-xl font-bold mb-6 ${textPurple}`}>
                     Chọn kỳ hạn
                   </h2>
                   <div className="space-y-3">
                     {INSTALLMENT_PLANS.map((plan) => (
                       <label
                         key={plan.id}
-                        className="flex items-center gap-3 p-4 rounded-lg border-2 border-purple-500/30 cursor-pointer hover:border-purple-500 transition-colors"
+                        className="flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors"
                         style={{
-                          borderColor:
-                            installmentPlan === plan.id
-                              ? "rgb(168, 85, 247)"
-                              : undefined,
-                          backgroundColor:
-                            installmentPlan === plan.id
-                              ? "rgba(168, 85, 247, 0.1)"
-                              : undefined,
+                          borderColor: installmentPlan === plan.id ? selectedBorder : (isDark ? "rgba(168,85,247,0.3)" : "rgba(236,72,153,0.3)"),
+                          backgroundColor: installmentPlan === plan.id ? selectedBg : undefined,
                         }}
                       >
                         <input
@@ -759,11 +756,11 @@ export function CheckoutPage() {
                           value={plan.id}
                           checked={installmentPlan === plan.id}
                           onChange={(e) => setInstallmentPlan(e.target.value)}
-                          className="w-4 h-4"
+                          className={`w-4 h-4 ${isDark ? "" : "accent-pink-500"}`}
                         />
                         <div className="flex-1">
-                          <p className="font-semibold">{plan.name}</p>
-                          <p className="text-sm text-gray-400">
+                          <p className={`font-semibold ${textPrimary}`}>{plan.name}</p>
+                          <p className={`text-sm ${textSecondary}`}>
                             Lãi: {plan.interest}% • Mỗi kỳ:{" "}
                             {(
                               (subtotal * (1 + plan.interest / 100)) /
@@ -781,7 +778,7 @@ export function CheckoutPage() {
               <div className="flex gap-4">
                 <button
                   onClick={() => setStep("info")}
-                  className="flex-1 py-3 bg-white/10 rounded-lg font-semibold hover:bg-white/20 transition-colors"
+                  className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${isDark ? "bg-white/10 hover:bg-white/20 text-white" : "bg-gray-200 hover:bg-gray-300 text-black"}`}
                 >
                   <ArrowLeft className="w-5 h-5 inline mr-2" />
                   Quay lại
@@ -789,7 +786,7 @@ export function CheckoutPage() {
                 <button
                   onClick={handleCreateOrder}
                   disabled={isLoading}
-                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50"
+                  className="flex-1 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform disabled:opacity-50 text-white"
                 >
                   {isLoading ? (
                     <Loader className="w-5 h-5 animate-spin mx-auto" />
@@ -807,22 +804,22 @@ export function CheckoutPage() {
 
         {/* Order Summary Sidebar */}
         <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-purple-900/40 to-purple-800/20 backdrop-blur-sm rounded-xl border border-purple-500/30 p-6 sticky top-24">
-            <h2 className="text-2xl font-bold mb-6 text-purple-400">
+          <div className={`rounded-xl p-6 sticky top-24 ${sectionCard}`}>
+            <h2 className={`text-2xl font-bold mb-6 ${textPurple}`}>
               Tổng đơn hàng
             </h2>
             <div className="space-y-4 mb-6">
               <div className="flex justify-between">
-                <span className="text-gray-400">Tạm tính:</span>
-                <span className="font-semibold">
+                <span className={textSecondary}>Tạm tính:</span>
+                <span className={`font-semibold ${textPrimary}`}>
                   {selectedAmount.toLocaleString("vi-VN")}₫
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">Phí vận chuyển:</span>
-                <span className="font-semibold">
+                <span className={textSecondary}>Phí vận chuyển:</span>
+                <span className={`font-semibold ${textPrimary}`}>
                   {shipping === 0 ? (
-                    <span className="text-green-400">Miễn phí</span>
+                    <span className={textGreen}>Miễn phí</span>
                   ) : (
                     `${shipping.toLocaleString("vi-VN")}₫`
                   )}
@@ -830,40 +827,40 @@ export function CheckoutPage() {
               </div>
               {paymentMethod === "installment" && (
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Lãi suất:</span>
-                  <span className="font-semibold">
+                  <span className={textSecondary}>Lãi suất:</span>
+                  <span className={`font-semibold ${textPrimary}`}>
                     {(totalWithInterest - subtotal).toLocaleString("vi-VN")}₫
                   </span>
                 </div>
               )}
               {/* Promotion UI */}
-              <div className="pt-4 border-t border-purple-500/30">
-                <label className="block text-sm font-semibold mb-2">Mã khuyến mãi</label>
+              <div className={`pt-4 border-t ${borderColor}`}>
+                <label className={labelClass}>Mã khuyến mãi</label>
                 <div className="flex gap-2 mb-2">
                   <input
                     type="text"
                     value={promotionInput}
                     onChange={(e) => setPromotionInput(e.target.value)}
                     placeholder="Nhập mã giảm giá..."
-                    className="flex-1 px-3 py-2 bg-slate-900/50 border border-purple-500/30 rounded-lg focus:outline-none focus:border-purple-400 text-sm"
+                    className={`flex-1 px-3 py-2 rounded-lg focus:outline-none text-sm ${inputClass.replace("w-full px-4 py-3", "")}`}
                   />
                   <button
                     onClick={handleApplyPromotion}
                     disabled={isApplyingPromo}
-                    className="px-4 py-2 bg-purple-600 rounded-lg text-sm font-semibold hover:bg-purple-500 transition-colors disabled:opacity-50 flex items-center"
+                    className={`px-4 py-2 bg-purple-600 rounded-lg text-sm font-semibold hover:bg-purple-500 transition-colors disabled:opacity-50 flex items-center text-white`}
                   >
                      {isApplyingPromo ? <Loader className="w-4 h-4 animate-spin" /> : "Áp dụng"}
                   </button>
                 </div>
                 {appliedPromotion && (
-                  <div className="text-sm text-green-400 font-medium">
+                  <div className={`text-sm font-medium ${textGreen}`}>
                     Đã áp dụng mã {appliedPromotion.code} (-{appliedPromotion.discount_percent}%)
                   </div>
                 )}
               </div>
 
               {appliedPromotion && (
-                <div className="flex justify-between text-green-400">
+                <div className={`flex justify-between ${textGreen}`}>
                   <span>Giảm giá:</span>
                   <span className="font-semibold">
                     -{discountAmount.toLocaleString("vi-VN")}₫
@@ -871,10 +868,10 @@ export function CheckoutPage() {
                 </div>
               )}
 
-              <div className="pt-4 border-t border-purple-500/30">
+              <div className={`pt-4 border-t ${borderColor}`}>
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-lg font-semibold">Tổng cộng:</span>
-                  <span className="text-3xl font-bold text-purple-400">
+                  <span className={`text-3xl font-bold ${textPurple}`}>
                     {(paymentMethod === "installment"
                       ? totalWithInterest
                       : subtotal
@@ -883,7 +880,7 @@ export function CheckoutPage() {
                   </span>
                 </div>
                 {paymentMethod === "installment" && (
-                  <div className="text-sm text-purple-300">
+                  <div className={`text-sm ${textPurple.replace("400", "300")}`}>
                     Mỗi kỳ: {monthlyPayment.toLocaleString("vi-VN")}₫
                   </div>
                 )}

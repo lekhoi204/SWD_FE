@@ -13,6 +13,8 @@ const ACCENT_BG = `rgba(${ACCENT_RGB},0.12)`;
 
 const ORDER_STATUSES = [
   { value: 'all', label: 'Tất cả' },
+  { value: 'Chờ thanh toán', label: 'Chờ thanh toán' },
+  { value: 'Chờ duyệt', label: 'Chờ duyệt' },
   { value: 'Chờ xử lý', label: 'Chờ xử lý' },
   { value: 'Đang xử lý', label: 'Đang xử lý' },
   { value: 'Đang giao', label: 'Đang giao' },
@@ -22,12 +24,14 @@ const ORDER_STATUSES = [
 ];
 
 const STATUS_STYLE: Record<string, { color: string; bg: string; icon: typeof Clock }> = {
-  'Chờ xử lý':  { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Clock },
-  'Đang xử lý': { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  icon: Package },
-  'Đang giao':   { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: Truck },
-  'Đã giao':     { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle },
-  'Hoàn thành':  { color: '#06b6d4', bg: 'rgba(6,182,212,0.12)',  icon: CheckCircle },
-  'Đã hủy':      { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  icon: XCircle },
+  'Chờ thanh toán': { color: '#f97316', bg: 'rgba(249,115,22,0.12)', icon: CreditCard },
+  'Chờ duyệt':      { color: '#eab308', bg: 'rgba(234,179,8,0.12)',  icon: Clock },
+  'Chờ xử lý':     { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Clock },
+  'Đang xử lý':    { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: Package },
+  'Đang giao':      { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: Truck },
+  'Đã giao':        { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle },
+  'Hoàn thành':     { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle },
+  'Đã hủy':         { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  icon: XCircle },
 };
 
 const PAYMENT_STYLE: Record<string, { color: string; bg: string; icon: typeof CreditCard; label: string }> = {
@@ -47,16 +51,27 @@ const formatDate = (d: string) => {
 
 /** Map English → Vietnamese để frontend luôn hiển thị đúng dù backend trả gì */
 const STATUS_MAP: Record<string, string> = {
-  Pending:    'Chờ xử lý',
-  Processing: 'Đang xử lý',
-  Shipped:    'Đang giao',
-  Delivered:  'Đã giao',
-  Completed:  'Hoàn thành',
-  Cancelled:  'Đã hủy',
+  PendingApproval: 'Chờ duyệt',
+  PendingPayment: 'Chờ thanh toán',
+  Pending:        'Chờ xử lý',
+  Processing:     'Đang xử lý',
+  Shipped:        'Đang giao',
+  Delivered:      'Đã giao',
+  Completed:      'Hoàn thành',
+  Cancelled:      'Đã hủy',
 };
+
+const REVERSE_STATUS_MAP: Record<string, string> = Object.fromEntries(
+  Object.entries(STATUS_MAP).map(([en, vi]) => [vi, en])
+);
 
 function normalizeStatus(raw: string): string {
   return STATUS_MAP[raw] ?? raw;
+}
+
+/** Chuyển label tiếng Việt → English trước khi gửi lên API */
+function toApiStatus(vnLabel: string): string {
+  return REVERSE_STATUS_MAP[vnLabel] ?? vnLabel;
 }
 
 /** Backend có thể trả payment_id, paymentId hoặc payment: { id, payment_id } */
@@ -78,12 +93,11 @@ function isQrPaymentOrder(o: OrderDetail): boolean {
   return m === 'QR_FULL' || m === 'QR_INSTALLMENT';
 }
 
-/** Hiện nút xác nhận thanh toán: đơn QR_FULL / QR_INSTALLMENT, gọi API theo orderId */
+/** Hiện nút xác nhận thanh toán: đơn QR đã thanh toán (Chờ duyệt), không hiện khi Chờ thanh toán */
 function shouldShowConfirmPaymentButton(o: OrderDetail): boolean {
   if (!isQrPaymentOrder(o)) return false;
   const terminal = new Set([
-    'Hoàn thành', 'Đã hủy', 'Đã giao',
-    'Completed', 'Delivered', 'Cancelled',
+    'Chờ thanh toán', 'Hoàn thành', 'Đã hủy', 'Đã giao',
   ]);
   if (terminal.has(o.status)) return false;
   const ps = String(o.payment_status || '').toLowerCase();
@@ -156,7 +170,7 @@ export function ManagerOrdersPage() {
     setSaving(true);
     try {
       await updateOrderApi(String(editOrder.order_id), {
-        status: editStatus,
+        status: toApiStatus(editStatus),
         shipping_address: editAddress || undefined,
       } as any);
       toast.success('Cập nhật đơn hàng thành công');
@@ -196,9 +210,9 @@ export function ManagerOrdersPage() {
     } finally { setDeleting(false); }
   };
 
-  const totalRevenue = orders.filter(o => o.status !== 'Cancelled' && o.status !== 'Đã hủy').reduce((sum, o) => sum + o.total_amount, 0);
-  const pendingCount = orders.filter(o => o.status === 'Chờ xử lý').length;
-  const completedCount = orders.filter(o => o.status === 'Hoàn thành' || o.status === 'Đã giao').length;
+  const totalRevenue = orders.filter(o => o.status !== 'Đã hủy').reduce((sum, o) => sum + o.total_amount, 0);
+  const pendingCount = orders.filter(o => ['Chờ xử lý', 'Chờ duyệt', 'Chờ thanh toán'].includes(o.status)).length;
+  const completedCount = orders.filter(o => ['Hoàn thành', 'Đã giao'].includes(o.status)).length;
 
   if (loading) return <div style={{ textAlign: 'center', padding: '60px', color: '#9ca3af' }}>Đang tải...</div>;
 
@@ -216,7 +230,7 @@ export function ManagerOrdersPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         {[
           { label: 'Tổng đơn hàng', value: orders.length, color: ACCENT },
-          { label: 'Chờ xử lý', value: pendingCount, color: '#f59e0b' },
+          { label: 'Chờ xử lý', value: pendingCount, color: '#eab308' },
           { label: 'Hoàn thành', value: completedCount, color: '#10b981' },
           { label: 'Doanh thu', value: formatPrice(totalRevenue), color: '#3b82f6' },
         ].map((s) => (

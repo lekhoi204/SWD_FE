@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Rocket, Zap, Shield, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { getProductsApi } from "@/api/products";
 import type { Product } from "@/types";
@@ -61,11 +61,20 @@ export function HomePage() {
 
   const featuredProducts = products.slice(0, 6);
   const categories = Object.entries(CATEGORY_LABELS).filter(
-    ([k]) => k !== "all",
+    ([k]) => k !== "all" && k !== "psu",
   );
 
   return (
     <div>
+      {/* Banner - chỉ hiện ở trang chủ */}
+      <div className="relative z-10 m-0 p-0" style={{ width: "100%", maxWidth: "none" }}>
+        <img
+          src="https://sf-static.upanhlaylink.com/img/image_202603197d3affa6338f668f996fb1795de59c49.jpg"
+          alt="Banner"
+          className="block w-full h-auto m-0 p-0 align-top border-0"
+        />
+      </div>
+
       <section className="relative overflow-hidden">
         <div className="container mx-auto px-4 py-20 md:py-32">
           <div className="max-w-4xl mx-auto text-center">
@@ -106,80 +115,6 @@ export function HomePage() {
           className="absolute bottom-20 right-10 w-40 h-40 bg-blue-500/30 rounded-full blur-3xl animate-pulse"
           style={{ animationDelay: "1s" }}
         />
-      </section>
-
-      <section className="container mx-auto px-4 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div
-            className={`backdrop-blur-sm p-6 rounded-xl hover:scale-105 transition-transform ${
-              isDark
-                ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30"
-                : "bg-white/60 border border-purple-300 shadow-lg"
-            }`}
-          >
-            <div
-              className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${isDark ? "bg-purple-500/30" : "bg-purple-200"}`}
-            >
-              <Rocket
-                className={`w-6 h-6 ${isDark ? "text-purple-400" : "text-purple-600"}`}
-              />
-            </div>
-            <h3
-              className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
-            >
-              Giao hàng siêu tốc
-            </h3>
-            <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-              Giao hàng nhanh chóng trong vòng 24h tại các thành phố lớn
-            </p>
-          </div>
-          <div
-            className={`backdrop-blur-sm p-6 rounded-xl hover:scale-105 transition-transform ${
-              isDark
-                ? "bg-gradient-to-br from-blue-900/40 to-blue-800/20 border border-blue-500/30"
-                : "bg-white/60 border border-blue-300 shadow-lg"
-            }`}
-          >
-            <div
-              className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${isDark ? "bg-blue-500/30" : "bg-blue-200"}`}
-            >
-              <Zap
-                className={`w-6 h-6 ${isDark ? "text-blue-400" : "text-blue-600"}`}
-              />
-            </div>
-            <h3
-              className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
-            >
-              Trả góp 0%
-            </h3>
-            <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-              Hỗ trợ trả góp 0% lãi suất với nhiều gói linh hoạt
-            </p>
-          </div>
-          <div
-            className={`backdrop-blur-sm p-6 rounded-xl hover:scale-105 transition-transform ${
-              isDark
-                ? "bg-gradient-to-br from-pink-900/40 to-pink-800/20 border border-pink-500/30"
-                : "bg-white/60 border border-pink-300 shadow-lg"
-            }`}
-          >
-            <div
-              className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${isDark ? "bg-pink-500/30" : "bg-pink-200"}`}
-            >
-              <Shield
-                className={`w-6 h-6 ${isDark ? "text-pink-400" : "text-pink-600"}`}
-              />
-            </div>
-            <h3
-              className={`text-xl font-bold mb-2 ${isDark ? "text-white" : "text-gray-900"}`}
-            >
-              Bảo hành chính hãng
-            </h3>
-            <p className={isDark ? "text-gray-400" : "text-gray-600"}>
-              Bảo hành chính hãng đầy đủ, hỗ trợ kỹ thuật tận tâm
-            </p>
-          </div>
-        </div>
       </section>
 
       <section className="container mx-auto px-4 py-16">

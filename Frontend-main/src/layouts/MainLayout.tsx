@@ -32,7 +32,7 @@ export function MainLayout() {
 
   return (
     <div
-      className={`min-h-screen relative overflow-hidden ${
+      className={`min-h-screen w-full max-w-full relative overflow-hidden m-0 p-0 ${
         theme.isDark ? "text-white" : "text-slate-900"
       }`}
     >

@@ -772,7 +772,8 @@ export function PCBuilderPage() {
       {activeTab === "build" ? (
         <>
           {/* Budget & Summary */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
+            {/* Left: Budget controls */}
             <div
               className={`lg:col-span-2 backdrop-blur-sm rounded-lg p-4 ${isDark ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border border-purple-500/30" : "bg-white/80 border border-purple-300 shadow-lg"}`}
             >
@@ -817,8 +818,67 @@ export function PCBuilderPage() {
                   Xóa
                 </button>
               </div>
-          </div>
+            </div>
 
+            {/* Middle: Selected products sidebar */}
+            <div
+              className={`backdrop-blur-sm rounded-lg p-4 ${isDark ? "bg-gradient-to-br from-green-900/40 to-green-800/20 border border-green-500/30" : "bg-white/80 border border-green-300 shadow-lg"}`}
+            >
+              <h3
+                className={`text-base font-bold mb-3 flex items-center gap-2 ${isDark ? "text-green-400" : "text-green-600"}`}
+              >
+                <CheckCircle className="w-4 h-4" /> Linh kiện đã chọn
+              </h3>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {buildComponents.filter(c => c.product).length === 0 ? (
+                  <p className={`text-xs text-center py-4 ${isDark ? "text-gray-500" : "text-gray-500"}`}>
+                    Chưa chọn linh kiện nào
+                  </p>
+                ) : (
+                  buildComponents.filter(c => c.product).map((comp) => (
+                    <div
+                      key={comp.category}
+                      className={`flex items-center gap-2 p-2 rounded-lg ${isDark ? "bg-white/5" : "bg-gray-50"}`}
+                    >
+                      <img
+                        src={comp.product!.image}
+                        alt={comp.product!.name}
+                        className="w-10 h-10 object-contain rounded"
+                        style={{ background: "#fff" }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium truncate text-black">
+                          {PC_BUILDER_LABELS[comp.category]}
+                        </p>
+                        <p className="text-xs truncate text-gray-700">
+                          {comp.product!.name}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => removeProduct(comp.category)}
+                        className={`p-1 rounded hover:bg-red-500/20 ${isDark ? "text-red-400" : "text-red-600"}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+              {buildComponents.filter(c => c.product).length > 0 && (
+                <div className={`mt-3 pt-3 border-t ${isDark ? "border-green-500/30" : "border-green-300"}`}>
+                  <div className="flex justify-between items-center">
+                    <span className={`text-sm font-bold ${isDark ? "text-green-400" : "text-green-600"}`}>
+                      Tổng:
+                    </span>
+                    <span className={`text-sm font-bold ${isDark ? "text-green-400" : "text-green-600"}`}>
+                      {totalPrice.toLocaleString("vi-VN")}₫
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right: Summary */}
             <div
               className={`backdrop-blur-sm rounded-lg p-4 ${isDark ? "bg-gradient-to-br from-blue-900/40 to-blue-800/20 border border-blue-500/30" : "bg-white/80 border border-blue-300 shadow-lg"}`}
             >
@@ -1030,7 +1090,8 @@ export function PCBuilderPage() {
                           <img
                             src={comp.product.image}
                             alt={comp.product.name}
-                            className="w-24 h-24 object-contain rounded-lg flex-shrink-0 p-2 bg-white"
+                            className="w-60 h-80 object-contain rounded-xl flex-shrink-0 p-3 bg-white shadow-lg"
+                            style={{ width: 240, height: 280 }}
                           />
                           <div className="flex-1">
                             <h4
@@ -1077,11 +1138,12 @@ export function PCBuilderPage() {
                                   : "border-gray-300 hover:border-purple-400"
                             } ${isDark ? "bg-gray-900/40 hover:bg-gray-900/60" : "bg-white/90 hover:bg-white"}`}
                           >
-                            <div className="relative aspect-[4/3] w-full flex items-center justify-center p-4 overflow-hidden rounded-t-xl bg-white border-b border-gray-100/10">
+                            <div className="relative flex items-center justify-center p-3 overflow-hidden rounded-t-xl bg-white border-b border-gray-100/10" style={{ height: 220 }}>
                               <img
                                 src={p.image}
                                 alt={p.name}
-                                className="w-full h-full object-contain transition-transform duration-300 hover:scale-110"
+                                className="object-contain transition-transform duration-300 hover:scale-110"
+                                style={{ width: 200, height: 200 }}
                               />
                               {comp.product?.id === p.id && (
                                 <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">

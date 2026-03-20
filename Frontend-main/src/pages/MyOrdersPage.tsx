@@ -24,20 +24,37 @@ import { toast } from "sonner";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import type { OrderDetail, Product } from "@/types";
 
-const STATUS_STYLE: Record<string, { color: string; bg: string; icon: any; label: string }> = {
-  Pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Clock, label: 'Chờ xử lý' },
-  Processing: { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: Package, label: 'Đang xử lý' },
-  Shipped: { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: Truck, label: 'Đang giao' },
-  Delivered: { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle, label: 'Đã giao' },
-  Completed: { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle, label: 'Hoàn tất' },
-  Cancelled: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', icon: XCircle, label: 'Đã hủy' },
-  Canceled: { color: '#ef4444', bg: 'rgba(239,68,68,0.12)', icon: XCircle, label: 'Đã hủy' },
+const STATUS_STYLE: Record<string, { color: string; bg: string; icon: any }> = {
+  'Chờ thanh toán': { color: '#f97316', bg: 'rgba(249,115,22,0.12)', icon: CreditCard },
+  'Chờ duyệt':      { color: '#eab308', bg: 'rgba(234,179,8,0.12)',  icon: Clock },
+  'Chờ xử lý':     { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Clock },
+  'Đang xử lý':    { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: Package },
+  'Đang giao':      { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: Truck },
+  'Đã giao':        { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle },
+  'Hoàn thành':     { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: CheckCircle },
+  'Đã hủy':         { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',  icon: XCircle },
 };
 
+const STATUS_MAP: Record<string, string> = {
+  PendingApproval: 'Chờ duyệt',
+  PendingPayment: 'Chờ thanh toán',
+  Pending:        'Chờ xử lý',
+  Processing:     'Đang xử lý',
+  Shipped:        'Đang giao',
+  Delivered:      'Đã giao',
+  Completed:      'Hoàn thành',
+  Cancelled:      'Đã hủy',
+  Canceled:       'Đã hủy',
+};
+
+const normalizeStatus = (raw: string): string => STATUS_MAP[raw] ?? raw;
+
 const PAYMENT_STYLE: Record<string, { color: string; bg: string; icon: any; label: string }> = {
-  QR_FULL: { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: CreditCard, label: 'VNPay Toàn bộ' },
-  QR_INSTALLMENT: { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: CreditCard, label: 'VNPay Trả góp' },
-  COD: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', icon: Package, label: 'Thanh toán khi nhận hàng' },
+  QR_FULL:       { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: CreditCard, label: 'Mã QR (toàn bộ)' },
+  QR_INSTALLMENT:{ color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: CreditCard, label: 'Mã QR (trả góp)' },
+  COD:           { color: '#10b981', bg: 'rgba(16,185,129,0.12)', icon: Package, label: 'Trả sau (COD)' },
+  'One-time':    { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)', icon: CreditCard, label: 'Thanh toán một lần' },
+  'Installment': { color: '#8b5cf6', bg: 'rgba(139,92,246,0.12)', icon: CreditCard, label: 'Trả góp' },
 };
 
 export function MyOrdersPage() {
@@ -86,7 +103,8 @@ export function MyOrdersPage() {
 
   const filtered = orders.filter(o => {
     const matchesSearch = o.order_id.toString().includes(search);
-    const matchesStatus = filterStatus === "all" || o.status === filterStatus;
+    const normalizedStatus = normalizeStatus(o.status);
+    const matchesStatus = filterStatus === "all" || normalizedStatus === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -109,8 +127,8 @@ export function MyOrdersPage() {
   };
 
   // Stats calculation
-  const pendingCount = orders.filter(o => o.status === 'Pending').length;
-  const completedCount = orders.filter(o => ['Delivered', 'Completed'].includes(o.status)).length;
+  const pendingCount = orders.filter(o => ['Chờ xử lý', 'Chờ duyệt', 'Chờ thanh toán'].includes(normalizeStatus(o.status))).length;
+  const completedCount = orders.filter(o => ['Đã giao', 'Hoàn thành'].includes(normalizeStatus(o.status))).length;
   const totalSpent = orders.reduce((sum, o) => sum + o.total_amount, 0);
 
   return (
@@ -129,7 +147,7 @@ export function MyOrdersPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
           {[
             { label: 'Tổng đơn hàng', value: orders.length, color: '#7c3aed', icon: Package },
-            { label: 'Chờ xử lý', value: pendingCount, color: '#f59e0b', icon: Clock },
+            { label: 'Chờ xử lý', value: pendingCount, color: '#eab308', icon: Clock },
             { label: 'Hoàn thành', value: completedCount, color: '#10b981', icon: CheckCircle },
             { label: 'Tổng chi tiêu', value: formatPrice(totalSpent), color: '#3b82f6', icon: DollarSign },
           ].map((s) => (
@@ -164,7 +182,7 @@ export function MyOrdersPage() {
             style={{ width: 'auto', minWidth: '180px', height: '44px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: '12px', padding: '0 12px', color: '#fff', fontSize: '14px', outline: 'none', cursor: 'pointer' }}
           >
             <option value="all" style={{ background: '#0a051d' }}>Tất cả trạng thái</option>
-            {Object.keys(STATUS_STYLE).map(k => <option key={k} value={k} style={{ background: '#0a051d' }}>{STATUS_STYLE[k].label}</option>)}
+            {Object.keys(STATUS_STYLE).map(k => <option key={k} value={k} style={{ background: '#0a051d' }}>{k}</option>)}
           </select>
         </div>
 
@@ -183,7 +201,8 @@ export function MyOrdersPage() {
                 {loading ? (
                   <tr><td colSpan={6} style={{ padding: '60px', textAlign: 'center' }}><RefreshCcw className="animate-spin mx-auto text-purple-500" /></td></tr>
                 ) : filtered.map((o) => {
-                  const st = STATUS_STYLE[o.status] || STATUS_STYLE.Pending;
+                  const normalizedStatus = normalizeStatus(o.status);
+                  const st = STATUS_STYLE[normalizedStatus] || STATUS_STYLE['Chờ xử lý'];
                   const StIcon = st.icon;
                   const met = o.payment_method || o.payment_type || 'COD';
                   const pt = PAYMENT_STYLE[met] || { color: '#9ca3af', bg: 'rgba(255,255,255,0.05)', icon: CreditCard, label: met };
@@ -201,7 +220,7 @@ export function MyOrdersPage() {
                       </td>
                       <td style={{ padding: '16px' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: st.color, background: st.bg, border: `1px solid ${st.color}20` }}>
-                          <StIcon style={{ width: 14, height: 14 }} /> {st.label}
+                          <StIcon style={{ width: 14, height: 14 }} /> {normalizedStatus}
                         </span>
                       </td>
                       <td style={{ padding: '16px' }}>
@@ -242,7 +261,7 @@ export function MyOrdersPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
               <div style={{ padding: '16px', borderRadius: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 6px', letterSpacing: '0.5px' }}>Trạng thái</p>
-                {(() => { const s = STATUS_STYLE[viewOrder.status] || STATUS_STYLE.Pending; return <span style={{ color: s.color, fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}><s.icon size={16} /> {s.label}</span>; })()}
+                {(() => { const ns = normalizeStatus(viewOrder.status); const s = STATUS_STYLE[ns] || STATUS_STYLE['Chờ xử lý']; const I = s.icon; return <span style={{ color: s.color, fontWeight: 700, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}><I size={16} /> {ns}</span>; })()}
               </div>
               <div style={{ padding: '16px', borderRadius: '16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', margin: '0 0 6px', letterSpacing: '0.5px' }}>Tổng thanh toán</p>
@@ -258,7 +277,7 @@ export function MyOrdersPage() {
                   </div>
                   <div>
                     <p style={{ fontSize: '10px', color: '#6b7280', margin: '0 0 4px', fontWeight: 700, textTransform: 'uppercase' }}>Thanh toán</p>
-                    <p style={{ color: '#d1d5db', fontSize: '14px', fontWeight: 500, margin: 0 }}>{PAYMENT_STYLE[viewOrder.payment_method || viewOrder.payment_type]?.label || viewOrder.payment_method || viewOrder.payment_type}</p>
+                    <p style={{ color: '#d1d5db', fontSize: '14px', fontWeight: 500, margin: 0 }}>{PAYMENT_STYLE[viewOrder.payment_method || viewOrder.payment_type]?.label || viewOrder.payment_method || viewOrder.payment_type || 'COD'}</p>
                   </div>
                   <div style={{ gridColumn: 'span 2' }}>
                     <p style={{ fontSize: '10px', color: '#6b7280', margin: '0 0 4px', fontWeight: 700, textTransform: 'uppercase' }}>Địa chỉ giao hàng</p>
