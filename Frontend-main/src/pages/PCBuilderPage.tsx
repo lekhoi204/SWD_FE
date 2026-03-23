@@ -569,6 +569,102 @@ export function PCBuilderPage() {
     setBuildComponents((prev) => prev.map((comp) => comp.category === category ? { ...comp, product: null } : comp));
   };
 
+  /** Chuẩn hoá tên để ghép sản phẩm AI với kho */
+  function normalizeProductName(s: string): string {
+    return s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function getAiComponentRow(
+    components: Record<string, unknown> | undefined,
+    category: string,
+  ): Record<string, unknown> | null {
+    if (!components || typeof components !== "object") return null;
+    const c = components as Record<string, unknown>;
+    if (c[category]) return c[category] as Record<string, unknown>;
+    if (category === "motherboard") {
+      const m = c.motherboard ?? c.mainboard;
+      if (m && typeof m === "object") return m as Record<string, unknown>;
+    }
+    return null;
+  }
+
+  function matchProductInCategory(
+    category: string,
+    comp: Record<string, unknown> | null,
+    products: Product[],
+  ): Product | null {
+    if (!comp) return null;
+    const pid = comp.product_id ?? comp.productId ?? comp.id;
+    if (pid != null) {
+      const byId = products.find((p) => Number(p.id) === Number(pid));
+      if (byId) return byId;
+    }
+    const rawName = String(comp.product_name ?? comp.name ?? "").trim();
+    if (!rawName) return null;
+    const pool = products.filter((p) => p.category === category && p.stock > 0);
+    if (pool.length === 0) return null;
+    const n = normalizeProductName(rawName);
+    let found = pool.find((p) => normalizeProductName(p.name) === n);
+    if (found) return found;
+    found = pool.find(
+      (p) =>
+        n.includes(normalizeProductName(p.name)) ||
+        normalizeProductName(p.name).includes(n),
+    );
+    if (found) return found;
+    const token = n.split(" ")[0];
+    if (token.length > 2) {
+      found = pool.find((p) => normalizeProductName(p.name).includes(token));
+    }
+    return found ?? null;
+  }
+
+  /** Áp dụng cấu hình AI xuống bảng build PC (khớp theo product_id hoặc tên trong kho) */
+  const applyAiBuild = (build: any) => {
+    if (!allProducts.length) {
+      toast.error("Đang tải danh sách sản phẩm, vui lòng thử lại sau");
+      return;
+    }
+    const components = build?.components;
+    if (!components || typeof components !== "object") {
+      toast.error("Không có danh sách linh kiện từ AI");
+      return;
+    }
+
+    const missing: string[] = [];
+    let matched = 0;
+
+    setBuildComponents((prev) =>
+      prev.map((bc) => {
+        const row = getAiComponentRow(components, bc.category);
+        if (!row) return bc;
+        const product = matchProductInCategory(bc.category, row, allProducts);
+        if (product) {
+          matched++;
+          return { ...bc, product };
+        }
+        missing.push(String(row.product_name ?? row.name ?? bc.category));
+        return { ...bc, product: null };
+      }),
+    );
+
+    if (matched > 0) {
+      toast.success(`Đã áp dụng ${matched} linh kiện từ AI xuống build PC`);
+    } else {
+      toast.error("Không khớp được sản phẩm nào trong kho — thử mô tả rõ hơn hoặc chọn tay");
+    }
+    if (missing.length > 0 && matched > 0) {
+      toast.warning(
+        `Chưa tìm thấy trong kho: ${missing.slice(0, 4).join(", ")}${missing.length > 4 ? "…" : ""}`,
+      );
+    }
+  };
+
   const autoBuild = () => {
     if (allProducts.length === 0) {
       toast.error("Chưa có dữ liệu sản phẩm");
@@ -771,6 +867,11 @@ export function PCBuilderPage() {
 
       {activeTab === "build" ? (
         <>
+          {/* AI Assistant — min-w-0 tránh tràn ngang toàn trang */}
+          <div className="mb-6 w-full min-w-0 max-w-full overflow-x-hidden">
+            <AIAssistant onApplyBuild={applyAiBuild} />
+          </div>
+
           {/* Budget & Summary */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-4">
             {/* Left: Budget controls */}

@@ -12,15 +12,145 @@ import {
 import * as SpecificationsV2Api from "@/api/specificationsV2";
 import { CATEGORY_LABELS } from "@/constants/categories";
 import { Breadcrumb } from "@/components/Breadcrumb";
-import type { Product } from "@/types";
+import type { Product, InstallmentPlan, ProductCategory } from "@/types";
 
-const PAYMENT_PLANS = [
-  { id: "full", name: "Thanh toán toàn bộ", months: 0, interest: 0 },
+/** Thanh toán / trả góp (cùng logic với Checkout — thêm gói trả một lần) */
+const PAYMENT_PLANS: InstallmentPlan[] = [
+  { id: "full", name: "Thanh toán một lần", months: 0, interest: 0 },
   { id: "3-months", name: "Trả góp 3 tháng", months: 3, interest: 0 },
-  { id: "6-months", name: "Trả góp 6 tháng", months: 6, interest: 0 },
-  { id: "9-months", name: "Trả góp 9 tháng", months: 9, interest: 0 },
-  { id: "12-months", name: "Trả góp 12 tháng", months: 12, interest: 0 },
+  { id: "6-months", name: "Trả góp 6 tháng", months: 6, interest: 0.48 },
+  { id: "9-months", name: "Trả góp 9 tháng", months: 9, interest: 0.84 },
+  { id: "12-months", name: "Trả góp 12 tháng", months: 12, interest: 1.2 },
 ];
+
+/**
+ * Map spec key (backend trả) → label hiển thị tiếng Việt
+ * Theo bảng quy chuẩn của dự án.
+ */
+const SPEC_LABELS: Record<string, string> = {
+  // ── CPU (socket → translateSpecKey theo category) ─────────────────
+  cores: "Số nhân",
+  threads: "Số luồng",
+  tdp: "Mức tiêu thụ điện (W)",
+  boost_clock: "Xung nhịp tối đa (GHz)",
+  generation: "Thế hệ",
+  series: "Dòng sản phẩm",
+  base_clock: "Xung cơ bản (GHz)",
+  cache: "Bộ nhớ đệm",
+  cache_mb: "Bộ nhớ đệm (MB)",
+
+  // ── GPU ──────────────────────────────────────────────────────────
+  memory_gb: "Dung lượng VRAM (GB)",
+  memory_type: "Loại bộ nhớ",
+  length_mm: "Chiều dài card (mm)",
+  power_pin: "Đầu cắm nguồn",
+  ray_tracing: "Hỗ trợ Ray Tracing",
+
+  // ── Mainboard (socket / form_factor / type xử lý theo category trong translateSpecKey) ──
+  chipset: "Chipset",
+  ram_type: "Loại RAM hỗ trợ",
+  ram_slots: "Số khe RAM",
+  m2_slots: "Số khe M.2",
+
+  // ── RAM ──────────────────────────────────────────────────────────
+  capacity_gb: "Dung lượng (GB)",
+  speed_mhz: "Tốc độ (MHz)",
+  kit_size: "Bộ (1 thanh / 2 thanh)",
+  latency: "Độ trễ (CL)",
+
+  // ── PSU ──────────────────────────────────────────────────────────
+  wattage: "Công suất (W)",
+  certification: "Chứng chỉ hiệu suất",
+  modular: "Kiểu dây nguồn",
+
+  // ── Case ──────────────────────────────────────────────────────────
+  max_gpu_length_mm: "Chiều dài GPU tối đa (mm)",
+  max_cooler_height_mm: "Chiều cao tản nhiệt tối đa (mm)",
+  fans_included: "Số quạt đi kèm",
+
+  // ── Cooler ───────────────────────────────────────────────────────
+  supported_sockets: "Chân cắm hỗ trợ",
+  max_tdp: "TDP tối đa hỗ trợ (W)",
+  height_mm: "Chiều cao tản nhiệt (mm)",
+
+  // ── Storage ───────────────────────────────────────────────────────
+  capacity: "Dung lượng",
+  interface_type: "Giao diện",
+  read_speed: "Tốc độ đọc",
+  write_speed: "Tốc độ ghi",
+
+  // ── Monitor ───────────────────────────────────────────────────────
+  screen_size: "Kích thước màn hình",
+  resolution: "Độ phân giải",
+  panel_type: "Loại tấm nền",
+  refresh_rate: "Tần số quét (Hz)",
+  response_time: "Thời gian phản hồi (ms)",
+  brightness: "Độ sáng (nit)",
+  hdr: "Hỗ trợ HDR",
+  adaptive_sync: "Công nghệ đồng bộ",
+
+  // ── Keyboard / Mouse ─────────────────────────────────────────────
+  connectivity: "Kết nối",
+  switch_type: "Loại switch",
+  dpi: "DPI",
+  battery: "Pin",
+  weight: "Trọng lượng (g)",
+
+  // ── Laptop ────────────────────────────────────────────────────────
+  os: "Hệ điều hành",
+  display: "Màn hình",
+  battery_life: "Thời lượng pin",
+  thickness: "Độ dày (mm)",
+  weight_kg: "Trọng lượng (kg)",
+};
+
+/** Chuẩn hóa key từ backend (snake_case, có thể có khoảng trắng / hoa thường) */
+function normalizeSpecKey(key: string): string {
+  return key
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/-+/g, "_");
+}
+
+/** Dịch spec key sang label tiếng Việt; category phân biệt key trùng (socket, type, form_factor) */
+function translateSpecKey(key: string, productCategory?: ProductCategory): string {
+  const k = normalizeSpecKey(key);
+  const cat = productCategory?.toLowerCase() as ProductCategory | undefined;
+
+  if (k === "socket") {
+    if (cat === "motherboard") return "Chân cắm CPU";
+    return "Chân cắm";
+  }
+  if (k === "form_factor") {
+    if (cat === "case") return "Kích thước case";
+    if (cat === "motherboard") return "Kích thước bo mạch";
+    return "Kích thước";
+  }
+  if (k === "type") {
+    if (cat === "cooler" || cat === "cooling") return "Loại tản nhiệt (Air/AIO)";
+    if (cat === "ram") return "Loại RAM (DDR4/DDR5)";
+    return "Loại";
+  }
+
+  return SPEC_LABELS[k] ?? key;
+}
+
+/** Format giá trị: true/false → Có/Không, chuẩn hóa boolean; guard null/undefined */
+function formatSpecValue(value: unknown): string {
+  if (value == null) return "—";
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "—";
+    }
+  }
+  const v = String(value).trim().toLowerCase();
+  if (v === "true" || v === "yes" || v === "1") return "Có";
+  if (v === "false" || v === "no" || v === "0") return "Không";
+  return String(value);
+}
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,45 +175,87 @@ export function ProductDetailPage() {
         setLoading(true);
         const data = await getProductByIdApi(id);
 
-        // Prefer new specifications-v2 JSON endpoint; fallback to legacy list
+        // Ưu tiên legacy API (cùng endpoint với ManagerProductsPage → chắc chắn hoạt động)
         let specs: Specification[] = [];
         try {
-          const jsonSpecs = await SpecificationsV2Api.getJsonSpecsApi(
-            id as string,
-          );
-          if (Array.isArray(jsonSpecs)) {
-            specs = jsonSpecs.map((s: any, idx: number) => {
-              if (s.spec_name && s.spec_value)
-                return {
-                  spec_id: s.spec_id ?? idx,
-                  product_id: s.product_id ?? Number(id),
-                  spec_name: s.spec_name,
-                  spec_value: s.spec_value,
-                } as Specification;
-              return {
-                spec_id: s.spec_id ?? idx,
-                product_id: s.product_id ?? Number(id),
-                spec_name: String(s.name ?? s.key ?? `spec_${idx}`),
-                spec_value: String(s.value ?? ""),
-              } as Specification;
-            });
-          } else if (jsonSpecs && typeof jsonSpecs === "object") {
-            specs = Object.keys(jsonSpecs).map((k, idx) => ({
-              spec_id: idx + 1,
-              product_id: Number(id),
-              spec_name: k,
-              spec_value: String((jsonSpecs as any)[k]),
+          const legacySpecs = await getSpecsByProductIdApi(id);
+          if (Array.isArray(legacySpecs) && legacySpecs.length > 0) {
+            // Legacy trả spec_name đúng key backend (socket, cores…) → map sang tiếng Việt
+            specs = legacySpecs.map((s) => ({
+              ...s,
+              spec_name: translateSpecKey(String(s.spec_name), data.category),
+              spec_value: formatSpecValue(s.spec_value as unknown),
             }));
           }
         } catch (err) {
-          // ignore and fallback
+          console.warn("[ProductDetail] Legacy spec fetch failed:", err);
         }
 
+        // V2 JSON endpoint làm fallback — thường trả object thay vì array nên cần xử lý cẩn thận
         if (specs.length === 0) {
           try {
-            specs = await getSpecsByProductIdApi(id).catch(() => []);
+            const jsonSpecs = await SpecificationsV2Api.getJsonSpecsApi(id as string);
+            console.debug("[ProductDetail] V2 specs raw response:", jsonSpecs);
+
+            if (Array.isArray(jsonSpecs)) {
+              specs = jsonSpecs.map((s: any, idx: number) => {
+                try {
+                  if (s.spec_name && s.spec_value)
+                    return {
+                      spec_id: s.spec_id ?? idx,
+                      product_id: s.product_id ?? Number(id),
+                      spec_name: translateSpecKey(String(s.spec_name), data.category),
+                      spec_value: formatSpecValue(s.spec_value),
+                    } as Specification;
+                  const rawKey = String(s.name ?? s.key ?? `spec_${idx}`);
+                  return {
+                    spec_id: s.spec_id ?? idx,
+                    product_id: s.product_id ?? Number(id),
+                    spec_name: translateSpecKey(rawKey, data.category),
+                    spec_value: formatSpecValue(s.value),
+                  } as Specification;
+                } catch (e) {
+                  return {
+                    spec_id: idx,
+                    product_id: Number(id),
+                    spec_name: String(s.spec_name ?? s.name ?? s.key ?? `spec_${idx}`),
+                    spec_value: String(s.spec_value ?? s.value ?? ""),
+                  } as Specification;
+                }
+              });
+            } else if (jsonSpecs && typeof jsonSpecs === "object") {
+              // Chuẩn backend V2: { product_id, specs: { ... } } — lấy phần specs nếu có
+              const specRecord =
+                (jsonSpecs as { specs?: Record<string, unknown> }).specs &&
+                typeof (jsonSpecs as { specs?: Record<string, unknown> }).specs ===
+                  "object" &&
+                !Array.isArray((jsonSpecs as { specs?: unknown }).specs)
+                  ? (jsonSpecs as { specs: Record<string, unknown> }).specs
+                  : (jsonSpecs as Record<string, unknown>);
+              // Bỏ qua product_id / metadata không phải map spec
+              const keys = Object.keys(specRecord).filter(
+                (k) => k !== "product_id" && k !== "specs",
+              );
+              specs = keys.map((k, idx) => {
+                try {
+                  return {
+                    spec_id: idx + 1,
+                    product_id: Number(id),
+                    spec_name: translateSpecKey(k, data.category),
+                    spec_value: formatSpecValue((specRecord as any)[k]),
+                  };
+                } catch (e) {
+                  return {
+                    spec_id: idx + 1,
+                    product_id: Number(id),
+                    spec_name: k,
+                    spec_value: String((specRecord as any)[k] ?? ""),
+                  };
+                }
+              });
+            }
           } catch (err) {
-            specs = [];
+            console.error("[ProductDetail] V2 spec fetch failed:", err);
           }
         }
 

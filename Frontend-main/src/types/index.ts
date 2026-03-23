@@ -12,6 +12,7 @@ export type ProductCategory =
   | "motherboard"
   | "psu"
   | "case"
+  | "cooler"
   | "cooling"
   | "monitor"
   | "keyboard"

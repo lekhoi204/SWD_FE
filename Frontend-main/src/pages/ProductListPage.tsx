@@ -64,17 +64,32 @@ export function ProductListPage() {
             const targetNorm = normalize(targetLabel);
             const keyNorm = normalize(category);
 
-            // find by normalized equality or inclusion
-            let matched = categoryList.find((c) => {
+            /**
+             * Khớp danh mục với URL/slug.
+             * Tránh lỗi: slug "tan-nhiet-cpu" → "tannhietcpu" lại khớp nhầm "CPU" vì
+             * `tannhietcpu`.includes(`cpu`) === true. Chỉ dùng `targetNorm.includes(nameNorm)`
+             * khi tên danh mục đủ dài (>= 6 ký tự sau normalize), hoặc ưu tiên khớp dài trước.
+             */
+            const MIN_REVERSE_SUBSTRING_LEN = 6;
+            const byLengthDesc = [...categoryList].sort(
+              (a, b) =>
+                normalize(String(b?.name ?? "")).length -
+                normalize(String(a?.name ?? "")).length,
+            );
+
+            let matched = byLengthDesc.find((c) => {
               if (!c || !c.name) return false;
               const nameNorm = normalize(String(c.name));
-              return (
-                nameNorm === targetNorm ||
-                nameNorm === keyNorm ||
-                nameNorm.includes(targetNorm) ||
-                targetNorm.includes(nameNorm) ||
-                nameNorm.includes(keyNorm)
-              );
+              if (nameNorm === targetNorm || nameNorm === keyNorm) return true;
+              if (targetNorm.length >= 3 && nameNorm.includes(targetNorm))
+                return true;
+              if (keyNorm.length >= 3 && nameNorm.includes(keyNorm)) return true;
+              if (
+                targetNorm.length >= MIN_REVERSE_SUBSTRING_LEN &&
+                targetNorm.includes(nameNorm)
+              )
+                return true;
+              return false;
             });
 
             console.debug("Fetched categories for matching:", categoryList);
@@ -96,16 +111,17 @@ export function ProductListPage() {
                 setIsCategoryFetch(true);
               }
             } else {
-              const data = await getProductsApi();
+              // Không tìm được category trong danh sách → gửi category slug lên backend filter
+              const data = await getProductsApi({ category });
               if (mounted) setProducts(data);
             }
           } catch (err) {
-            // On any error, fallback to fetch all and filter client-side
+            // Lỗi → vẫn gửi category lên backend filter
             console.error(
-              "Category lookup failed, falling back to all products",
+              "Category lookup failed, falling back to backend filter",
               err,
             );
-            const data = await getProductsApi();
+            const data = await getProductsApi({ category });
             if (mounted) setProducts(data);
           }
         } else {

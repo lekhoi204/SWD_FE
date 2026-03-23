@@ -40,13 +40,28 @@ export async function upsertJsonSpecsApi(payload: {
   return res.data;
 }
 
+/**
+ * GET /specifications-v2/json/:productId
+ * Backend thường trả: { success, data: { product_id, specs: { socket: "...", ... } } }
+ * Trả về object specs phẳng để UI map key → value (tránh [object Object] khi iterate data).
+ */
 export async function getJsonSpecsApi(
   productId: number | string,
 ): Promise<any> {
   const res = await apiClient<{ success: boolean; data: any }>(
     `/specifications-v2/json/${productId}`,
   );
-  return res.data;
+  const data = res.data;
+  if (
+    data &&
+    typeof data === "object" &&
+    data.specs != null &&
+    typeof data.specs === "object" &&
+    !Array.isArray(data.specs)
+  ) {
+    return data.specs;
+  }
+  return data;
 }
 
 export async function updateJsonSpecsApi(

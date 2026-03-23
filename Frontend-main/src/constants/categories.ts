@@ -6,14 +6,16 @@ import type { ProductCategory } from "@/types";
 
 export const CATEGORY_LABELS: Record<string, string> = {
   all: "Tất cả sản phẩm",
-  cpu: "Bộ vi xử lý (CPU)",
-  gpu: "Card đồ họa (GPU)",
+  cpu: "Bộ vi xử lý",
+  gpu: "Card đồ họa",
   motherboard: "Bo mạch chủ",
-  ram: "RAM",
+  ram: "Bộ nhớ RAM",
   storage: "Ổ cứng",
-  psu: "Bộ nguồn",
-  case: "Case máy tính",
-  cooling: "Hệ thống tản nhiệt",
+  psu: "Nguồn máy tính",
+  case: "Vỏ máy tính",
+  cooler: "Tản nhiệt CPU",
+  /** Slug từ tên API "Tản nhiệt CPU" (getCategorySlug) */
+  "tan-nhiet-cpu": "Tản nhiệt CPU",
   monitor: "Màn hình",
   keyboard: "Bàn phím",
   mouse: "Chuột máy tính",
