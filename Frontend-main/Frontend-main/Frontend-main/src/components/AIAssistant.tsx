@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { buildPcApi, analyzeApi, getRecommendationsApi } from "@/api/ai";
+import { buildPcApi } from "@/api/ai";
+import { useTheme } from "@/context/ThemeContext";
 import {
   Loader2,
   Check,
-  Sparkles,
   Cpu,
   Monitor,
   Layers,
@@ -13,23 +13,26 @@ import {
   Box,
   Wind,
   Layout,
-  Brain,
-  Star,
-  Copy,
-  Download,
-  Share2,
-  ChevronRight,
-  AlertTriangle,
-  DollarSign,
-  Gauge,
-  Wrench,
+  Send,
+  User,
+  Bot,
 } from "lucide-react";
 
 interface AIAssistantProps {
   onApplyBuild?: (build: any) => void;
 }
 
-type Mode = "build" | "analyze" | "recommendations";
+// AIAssistant interface
+
+interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string; // text shown in bubble
+  mode: "build";
+  data?: any; // raw API response data
+  isMock?: boolean;
+  loading?: boolean;
+}
 
 const CATEGORY_ICONS: Record<string, any> = {
   cpu: Cpu,
@@ -42,7 +45,6 @@ const CATEGORY_ICONS: Record<string, any> = {
   mainboard: Layout,
   motherboard: Layout,
 };
-
 const CATEGORY_COLORS: Record<string, string> = {
   cpu: "from-blue-600 to-blue-400",
   gpu: "from-emerald-600 to-emerald-400",
@@ -54,7 +56,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   mainboard: "from-pink-600 to-pink-400",
   motherboard: "from-pink-600 to-pink-400",
 };
-
 const CATEGORY_LABELS: Record<string, string> = {
   cpu: "CPU",
   gpu: "GPU",
@@ -67,37 +68,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   motherboard: "Mainboard",
 };
 
-const BUILD_TYPE_INFO: Record<
-  string,
-  { label: string; icon: string; color: string }
-> = {
-  gaming: { label: "Gaming", icon: "🎮", color: "text-red-400" },
-  workstation: { label: "Workstation", icon: "🖥️", color: "text-blue-400" },
-  gaming_workstation: {
-    label: "Gaming + Đồ họa",
-    icon: "🎮🖥️",
-    color: "text-purple-400",
-  },
-  streaming: { label: "Streaming", icon: "📡", color: "text-pink-400" },
-  editing: { label: "Edit Video/Ảnh", icon: "🎬", color: "text-orange-400" },
-  ai_ml: { label: "AI / ML", icon: "🤖", color: "text-cyan-400" },
-  office: { label: "Văn phòng", icon: "💼", color: "text-green-400" },
-  home_server: { label: "Home Server", icon: "🗄️", color: "text-gray-400" },
-  budget: { label: "Tiết kiệm", icon: "💰", color: "text-yellow-400" },
-};
+const isMock = (data: any) =>
+  data?.mock === true ||
+  (typeof data?.explanation === "string" &&
+    data.explanation.startsWith("[MOCK]"));
+const stripMock = (s?: string) => s?.replace(/^\[MOCK\]\s*/i, "") ?? "";
 
-const isMockResult = (data: any): boolean => {
-  if (data?.mock === true) return true;
-  if (
-    typeof data?.explanation === "string" &&
-    data.explanation.startsWith("[MOCK]")
-  )
-    return true;
-  return false;
-};
-const stripMock = (text?: string) => text?.replace(/^\[MOCK\]\s*/i, "") ?? "";
-
-/** Lấy mảng components từ nhiều dạng response khác nhau */
 function extractComponents(data: any): any[] {
   if (!data) return [];
   if (Array.isArray(data)) return data;
@@ -106,705 +82,577 @@ function extractComponents(data: any): any[] {
   return [];
 }
 
+function buildSummaryText(data: any): string {
+  if (!data) return "";
+  if (data.explanation) {
+    return stripMock(data.explanation);
+  }
+  if (data.build) {
+    const cost = Number(data.build.estimated_total_cost).toLocaleString(
+      "vi-VN",
+    );
+    const n = data.build.components
+      ? Object.keys(data.build.components).length
+      : 0;
+    return `Đã tạo cấu hình ${n} linh kiện, tổng chi phí ${cost}₫.`;
+  }
+  return "Đã xử lý xong.";
+}
+
+// ─── BUILD result card ───────────────────────────────────────────────────────
+function BuildResult({
+  data,
+  isDark,
+  onApplyBuild,
+}: {
+  data: any;
+  isDark: boolean;
+  onApplyBuild?: (b: any) => void;
+}) {
+  const build = data.build;
+  if (!build) return null;
+  const comps = build.components ? Object.entries(build.components) : [];
+  return (
+    <div
+      className={`mt-4 space-y-3 border-t pt-3 ${
+        isDark ? "border-white/10" : "border-slate-300"
+      }`}
+    >
+      {/* Stats row */}
+      <div className="grid grid-cols-2 gap-2">
+        <div
+          className={`rounded-lg p-3 border backdrop-blur-sm transition-all ${
+            isDark
+              ? "bg-gradient-to-br from-cyan-500/15 to-blue-500/15 border-cyan-500/30 hover:border-cyan-500/50"
+              : "bg-gradient-to-br from-cyan-100 to-blue-100 border-cyan-300/60 hover:border-cyan-400 shadow-sm"
+          }`}
+        >
+          <p
+            className={`text-[11px] font-bold ${isDark ? "text-cyan-300/90" : "text-cyan-900"}`}
+          >
+            Tổng chi phí
+          </p>
+          <p
+            className={`mt-1 text-base font-bold ${isDark ? "text-cyan-100" : "text-cyan-950"}`}
+          >
+            {Number(build.estimated_total_cost).toLocaleString("vi-VN")}₫
+          </p>
+        </div>
+        {build.compatibility && (
+          <div
+            className={`rounded-lg p-3 border backdrop-blur-sm transition-all ${
+              isDark
+                ? "bg-gradient-to-br from-purple-500/15 to-indigo-500/15 border-purple-500/30 hover:border-purple-500/50"
+                : "bg-gradient-to-br from-purple-100 to-indigo-100 border-purple-300/60 hover:border-purple-400 shadow-sm"
+            }`}
+          >
+            <p
+              className={`text-[11px] font-bold ${isDark ? "text-purple-300/90" : "text-purple-900"}`}
+            >
+              Tương thích
+            </p>
+            <p
+              className={`mt-1 text-base font-bold ${isDark ? "text-purple-100" : "text-purple-950"}`}
+            >
+              {build.compatibility.compatibility_score ?? "—"}/100
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Components */}
+      <div className="space-y-2">
+        {comps.map(([key, comp]: any, idx) => {
+          const Icon = CATEGORY_ICONS[key] || Box;
+          const label = CATEGORY_LABELS[key] || key.toUpperCase();
+          const componentGradients = [
+            "from-blue-100 to-cyan-100 border-blue-300/80",
+            "from-purple-100 to-indigo-100 border-purple-300/80",
+            "from-emerald-100 to-teal-100 border-emerald-300/80",
+            "from-rose-100 to-pink-100 border-rose-300/80",
+            "from-amber-100 to-orange-100 border-amber-300/80",
+            "from-cyan-100 to-teal-100 border-cyan-300/80",
+          ];
+          const gradientClass = isDark
+            ? componentGradients[idx % componentGradients.length].replace(
+                /\sborder.*/,
+                "",
+              )
+            : componentGradients[idx % componentGradients.length];
+
+          return (
+            <div
+              key={key}
+              className={`flex items-start gap-3 rounded-lg p-2 border backdrop-blur-sm transition-all ${
+                isDark
+                  ? `bg-gradient-to-br ${gradientClass} hover:border-opacity-60`
+                  : `bg-gradient-to-br ${componentGradients[idx % componentGradients.length]} hover:shadow-md shadow-sm`
+              }`}
+            >
+              <div
+                className="h-8 w-8 shrink-0 rounded-md bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mt-0.5 shadow-lg"
+                style={{ boxShadow: "0 4px 16px rgba(34,211,238,0.3)" }}
+              >
+                <Icon className="h-4 w-4 text-white" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p
+                  className={`text-[10px] font-extrabold uppercase tracking-widest ${isDark ? "text-white/80" : "text-blue-900"}`}
+                >
+                  {label}
+                </p>
+                <p
+                  className={`truncate text-sm font-bold mt-0.5 ${isDark ? "text-white/95" : "text-slate-950"}`}
+                >
+                  {comp.product_name || comp.name || "—"}
+                </p>
+                {comp.price && (
+                  <p
+                    className={`text-[10px] mt-0.5 font-bold ${isDark ? "text-white/70" : "text-blue-800"}`}
+                  >
+                    {Number(comp.price).toLocaleString("vi-VN")}₫
+                  </p>
+                )}
+              </div>
+              <div className="shrink-0 mt-0.5">
+                <div
+                  className="h-5 w-5 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center shadow-lg"
+                  style={{ boxShadow: "0 0 12px rgba(16,185,129,0.4)" }}
+                >
+                  <Check className="h-3 w-3 text-white" />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {onApplyBuild && (
+        <button
+          onClick={() => {
+            onApplyBuild(build);
+            toast.success("Đã áp dụng cấu hình!");
+          }}
+          className={`w-full rounded-lg py-2 text-sm font-bold text-white transition-all duration-300 transform hover:scale-105 active:scale-95 ${
+            isDark
+              ? "bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 shadow-lg shadow-emerald-500/30"
+              : "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-md hover:shadow-lg"
+          }`}
+        >
+          <Check className="h-4 w-4 inline mr-2" />
+          Áp dụng cấu hình
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export function AIAssistant({ onApplyBuild }: AIAssistantProps) {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<Mode>("build");
-  const [result, setResult] = useState<any>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { isDark } = useTheme();
 
-  async function handleSubmit(submitMode: Mode = mode) {
-    if (!query.trim()) return toast.error("Nhập yêu cầu trước đã nhé!");
-    setLoading(true);
-    setResult(null);
-    try {
-      let res: any;
-      if (submitMode === "build") {
-        res = await buildPcApi(query.trim());
-        if (res?.success) toast.success("Đã tạo cấu hình!");
-      } else if (submitMode === "analyze") {
-        res = await analyzeApi(query.trim());
-        if (res?.success) toast.success("Phân tích xong!");
-      } else {
-        res = await getRecommendationsApi(query.trim());
-        if (res?.success) toast.success("Đã gợi ý linh kiện!");
+  // Add global animation styles
+  useEffect(() => {
+    const style = document.createElement("style");
+    style.innerHTML = `
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
-      setResult(res);
+      .message-slide-in {
+        animation: slideIn 0.3s ease-out forwards;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages]);
+
+  // auto-grow textarea
+  function autoResize() {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }
+
+  async function handleSend() {
+    const text = query.trim();
+    if (!text) return;
+    if (loading) return;
+
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: "user",
+      content: text,
+      mode: "build",
+    };
+    const loadingMsg: Message = {
+      id: Date.now() + "l",
+      role: "assistant",
+      content: "",
+      mode: "build",
+      loading: true,
+    };
+    setMessages((prev) => [...prev, userMsg, loadingMsg]);
+    setQuery("");
+    if (textareaRef.current) textareaRef.current.style.height = "auto";
+    setLoading(true);
+
+    try {
+      const res = await buildPcApi(text);
+
+      const summary = res?.success
+        ? buildSummaryText(res.data)
+        : res?.message || "Có lỗi xảy ra.";
+      const assistantMsg: Message = {
+        id: Date.now() + "a",
+        role: "assistant",
+        content: summary,
+        mode: "build",
+        data: res?.success ? res.data : undefined,
+        isMock: res?.success ? isMock(res.data) : false,
+      };
+      setMessages((prev) => [...prev.slice(0, -1), assistantMsg]);
+      if (res?.success) toast.success("Xong rồi!");
     } catch (err: any) {
-      toast.error(err?.message || "Có lỗi xảy ra, thử lại nhé!");
+      const errMsg: Message = {
+        id: Date.now() + "e",
+        role: "assistant",
+        content: err?.message || "Có lỗi kết nối. Vui lòng thử lại.",
+        mode: "build",
+      };
+      setMessages((prev) => [...prev.slice(0, -1), errMsg]);
+      toast.error("Lỗi: " + (err?.message || "Không thể kết nối"));
     } finally {
       setLoading(false);
+      textareaRef.current?.focus();
     }
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSubmit();
-  }
-
-  function handleCopy() {
-    const text =
-      result?.data?.explanation ||
-      (result?.data?.build
-        ? JSON.stringify(result.data.build, null, 2)
-        : null) ||
-      JSON.stringify(result?.data, null, 2);
-    if (!text) return toast.error("Không có nội dung để copy");
-    navigator.clipboard?.writeText(text).then(
-      () => toast.success("Đã copy!"),
-      () => toast.error("Copy thất bại"),
-    );
-  }
-
-  function handleExport() {
-    if (!result?.data) return toast.error("Không có dữ liệu để xuất");
-    const blob = new Blob([JSON.stringify(result.data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `ai-${mode}-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Đã xuất JSON");
-  }
-
-  async function handleShare() {
-    const text =
-      stripMock(result?.data?.explanation) ||
-      JSON.stringify(result?.data?.build || result?.data, null, 2);
-    if (!text) return toast.error("Không có gì để chia sẻ");
-    if ((navigator as any).share) {
-      try {
-        await (navigator as any).share({ title: "AI Build PC", text });
-      } catch {
-        /* cancelled */
-      }
-    } else {
-      navigator.clipboard
-        ?.writeText(text)
-        .then(() => toast.success("Đã copy để chia sẻ!"));
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   }
 
-  const MODES: { key: Mode; label: string; icon: any; placeholder: string }[] =
-    [
-      {
-        key: "build",
-        label: "Tạo Build",
-        icon: Sparkles,
-        placeholder:
-          "VD: Build PC gaming ngân sách 25 triệu, chơi 4K, tản nhiệt nước...",
-      },
-      {
-        key: "analyze",
-        label: "Phân tích",
-        icon: Brain,
-        placeholder:
-          "VD: Tôi muốn build máy render 3D, ngân sách 40 triệu, ưu tiên CPU mạnh...",
-      },
-      {
-        key: "recommendations",
-        label: "Gợi ý linh kiện",
-        icon: Star,
-        placeholder:
-          "VD: Cần GPU chiến game 1440p, budget 7–10 triệu, compatible mainboard B660...",
-      },
-    ];
-
-  const currentMode = MODES.find((m) => m.key === mode)!;
-  const CurrentModeIcon = currentMode.icon;
-  const isMock = result?.success && isMockResult(result.data);
-  const recs = result?.success ? extractComponents(result.data) : [];
-  const hasResult = Boolean(result?.success && result?.data);
-
-  const panelClass =
-    "relative overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/88 shadow-[0_28px_90px_rgba(2,6,23,0.62)] backdrop-blur-xl";
-  const sectionClass =
-    "rounded-[28px] border border-white/10 bg-slate-900/72 p-4 shadow-[0_20px_56px_rgba(2,6,23,0.44)] backdrop-blur-xl sm:p-6";
-  const tileClass =
-    "rounded-[22px] border border-white/10 bg-white/[0.045] backdrop-blur-xl transition-all duration-300";
-  const actionButtonClass =
-    "flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3.5 py-2.5 text-xs font-semibold text-slate-200 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-400/40 hover:bg-white/[0.1] hover:text-white hover:shadow-lg";
-  const statCardClass = `${tileClass} relative overflow-hidden p-4 sm:p-5`;
+  const isEmpty = messages.length === 0;
 
   return (
-    <div className="relative mb-10 px-4 sm:px-0">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[520px] overflow-hidden rounded-[40px]">
-        <div className="absolute -left-16 top-8 h-48 w-48 rounded-full bg-cyan-400/14 blur-3xl" />
-        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-indigo-500/18 blur-3xl" />
-        <div className="absolute bottom-10 left-1/3 h-40 w-40 rounded-full bg-fuchsia-500/14 blur-3xl" />
-      </div>
-
-      <div className={`${panelClass} mb-6`}>
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-[#081120] to-slate-950" />
-        <div
-          className="absolute inset-0 opacity-90"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 14% 18%, rgba(56,189,248,0.18), transparent 26%), radial-gradient(circle at 82% 20%, rgba(99,102,241,0.2), transparent 24%), radial-gradient(circle at 68% 78%, rgba(168,85,247,0.15), transparent 22%)",
-          }}
-        />
-        <div
-          className="absolute inset-0 opacity-[0.1]"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(148,163,184,0.24) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.18) 1px, transparent 1px)",
-            backgroundSize: "36px 36px",
-          }}
-        />
-        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/45 to-transparent" />
-
-        <div className="relative grid gap-6 px-5 py-5 sm:px-7 sm:py-7 lg:grid-cols-[minmax(0,1.1fr)_320px]">
-          <div className="space-y-6">
-            <div className="flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex items-start gap-4">
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-[26px] bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_22px_48px_rgba(34,211,238,0.2)] ring-1 ring-white/30">
-                  <div className="absolute inset-[1px] rounded-[25px] bg-gradient-to-br from-white/12 to-transparent" />
-                  <Sparkles className="relative z-10 h-7 w-7 text-white" />
-                </div>
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200 backdrop-blur">
-                    <div className="h-2 w-2 rounded-full bg-cyan-500 shadow-[0_0_14px_rgba(34,211,238,0.9)]" />
-                    AI Build Studio
-                  </div>
-                  <div>
-                    <h3 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-                      AI PC Master Pro
-                    </h3>
-                    <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-300">
-                      Tạo cấu hình, phân tích nhu cầu và gợi ý linh kiện trong
-                      một giao diện rõ ràng hơn, sáng điểm chính và nổi bật hơn
-                      trên nền tối.
-                    </p>
-                  </div>
-                  <p className="text-xs font-semibold text-cyan-300/90">
-                    Powered by Groq · Llama 3.3 70B
-                  </p>
-                </div>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-2 text-xs font-bold text-emerald-300 shadow-sm backdrop-blur">
-                <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_12px_rgba(34,197,94,0.75)]" />
-                System Ready
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2 rounded-[24px] border border-white/10 bg-black/20 p-2 shadow-inner backdrop-blur-xl">
-              {MODES.map((m) => {
-                const Icon = m.icon;
-                const active = mode === m.key;
-                return (
-                  <button
-                    key={m.key}
-                    onClick={() => {
-                      setMode(m.key);
-                      setResult(null);
-                    }}
-                    className={`group relative flex items-center gap-2.5 rounded-2xl px-4 py-3 text-sm font-semibold transition-all duration-300 ${
-                      active
-                        ? "bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 text-white shadow-[0_16px_35px_rgba(59,130,246,0.28)] ring-1 ring-white/25"
-                        : "border border-transparent bg-white/[0.04] text-slate-300 hover:-translate-y-0.5 hover:border-cyan-400/20 hover:bg-white/[0.08] hover:text-white"
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {m.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-400/5 to-transparent" />
-              <div className="relative">
-                <div className="mb-3 flex items-center justify-between gap-3 flex-wrap px-1">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-slate-200 shadow-sm">
-                    <CurrentModeIcon className="h-3.5 w-3.5 text-cyan-300" />
-                    {currentMode.label}
-                  </div>
-                  <div className="inline-flex items-center gap-2 text-xs font-medium text-slate-400">
-                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1">
-                      Ctrl + Enter để gửi
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1">
-                      Càng chi tiết càng chuẩn
-                    </span>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <textarea
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={currentMode.placeholder}
-                    rows={5}
-                    className="min-h-[170px] w-full resize-none rounded-[24px] border border-white/10 bg-slate-950/78 px-5 py-5 pr-28 text-[15px] leading-relaxed text-slate-100 outline-none transition-all placeholder:text-slate-500 focus:border-cyan-400/60 focus:ring-4 focus:ring-cyan-400/10"
-                  />
-                  <button
-                    onClick={() => handleSubmit()}
-                    disabled={loading}
-                    title="Ctrl + Enter để gửi"
-                    className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-4 py-3 text-sm font-bold text-white shadow-[0_18px_36px_rgba(59,130,246,0.3)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_44px_rgba(59,130,246,0.4)] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Đang xử lý
-                      </>
-                    ) : (
-                      <>
-                        Gửi yêu cầu
-                        <ChevronRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={`${sectionClass} hidden lg:block`}>
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
-                  Quick Focus
-                </p>
-                <h4 className="mt-2 text-lg font-bold text-white">
-                  Tối ưu cho nền tối
-                </h4>
-              </div>
-              <div className="rounded-2xl border border-cyan-300/30 bg-cyan-400/10 p-3 text-cyan-300">
-                <Sparkles className="h-5 w-5" />
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className={`${tileClass} flex items-start gap-3 p-4`}>
-                <div className="rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 p-2.5 text-white shadow-lg shadow-cyan-500/20">
-                  <Sparkles className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">
-                    Build theo ngân sách
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                    Chốt danh sách linh kiện với tổng chi phí và độ tương thích.
-                  </p>
-                </div>
-              </div>
-              <div className={`${tileClass} flex items-start gap-3 p-4`}>
-                <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 p-2.5 text-white shadow-lg shadow-indigo-500/20">
-                  <Brain className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">
-                    Phân tích nhu cầu
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                    Nhìn nhanh build type, độ chắc chắn và ưu tiên CPU/GPU.
-                  </p>
-                </div>
-              </div>
-              <div className={`${tileClass} flex items-start gap-3 p-4`}>
-                <div className="rounded-2xl bg-gradient-to-br from-fuchsia-500 to-pink-500 p-2.5 text-white shadow-lg shadow-fuchsia-500/20">
-                  <Star className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">
-                    Gợi ý tương thích
-                  </p>
-                  <p className="mt-1 text-xs leading-relaxed text-slate-400">
-                    Tách bạch danh mục linh kiện để nhìn nhanh và dễ quyết định.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {hasResult && (
-        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          {isMock && (
-            <div className="flex items-start gap-3 rounded-[24px] border border-amber-400/20 bg-amber-400/10 p-4 shadow-sm backdrop-blur">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" />
-              <div>
-                <p className="text-sm font-bold text-amber-200">Demo Mode</p>
-                <p className="mt-1 text-xs leading-relaxed text-amber-200/80">
-                  Backend đang chạy AI giả lập. Restart server sau khi thêm{" "}
-                  <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-amber-200">
-                    GROQ_API_KEY
-                  </code>{" "}
-                  để dùng Groq thật.
-                </p>
-              </div>
-            </div>
-          )}
-
+    <div
+      className={`flex flex-col border overflow-hidden rounded-xl ${
+        isDark
+          ? "border-blue-500/30 bg-gradient-to-br from-slate-900 via-blue-900/50 to-slate-900 shadow-2xl shadow-blue-500/20"
+          : "border-blue-300/60 bg-gradient-to-br from-blue-50 via-blue-100/50 to-slate-50 shadow-2xl shadow-blue-300/30"
+      }`}
+      style={{ height: "680px" }}
+    >
+      {/* ── MINIMAL HEADER ── */}
+      <div
+        className={`flex items-center justify-between px-4 py-3 border-b backdrop-blur-sm ${
+          isDark
+            ? "border-white/10 bg-gradient-to-r from-blue-600/15 via-cyan-600/15 to-blue-600/15"
+            : "border-blue-300/40 bg-gradient-to-r from-blue-100/60 via-blue-50/60 to-cyan-100/60"
+        }`}
+      >
+        <div className="flex items-center gap-2">
           <div
-            className={`${sectionClass} flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between`}
+            className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 via-cyan-500 to-blue-600 flex items-center justify-center shadow-lg"
+            style={{ boxShadow: "0 0 20px rgba(34,211,238,0.5)" }}
           >
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
-                AI Output
-              </p>
-              <h4 className="mt-2 text-lg font-bold text-white">
-                Kết quả {currentMode.label.toLowerCase()}
+            <Bot className="h-4 w-4 text-white" />
+          </div>
+          <span
+            className={`text-sm font-bold ${isDark ? "text-white/95" : "text-slate-900"}`}
+          >
+            AI PC Builder
+          </span>
+        </div>
+        {!isEmpty && (
+          <button
+            onClick={() => setMessages([])}
+            className={`text-xs px-3 py-1.5 rounded-md font-bold transition-all transform hover:scale-105 active:scale-95 backdrop-blur-sm ${
+              isDark
+                ? "text-white/80 hover:text-white hover:bg-white/10 border border-white/10"
+                : "text-slate-700 hover:text-blue-900 hover:bg-white/80 border border-slate-300"
+            }`}
+          >
+            Làm mới
+          </button>
+        )}
+      </div>
+
+      {/* ── CHAT AREA ── */}
+      <div
+        className={`flex-1 overflow-y-auto px-4 py-4 space-y-4 scroll-smooth ${
+          isDark
+            ? "bg-gradient-to-b from-slate-900/40 via-blue-900/20 to-slate-900/40 backdrop-blur-sm"
+            : "bg-gradient-to-b from-blue-50/40 via-slate-50/30 to-blue-100/40"
+        }`}
+      >
+        {/* Empty state */}
+        {isEmpty && (
+          <div className="flex flex-col items-center justify-center h-full gap-6">
+            <div className="text-center">
+              <h4
+                className={`text-2xl font-bold ${isDark ? "text-blue-200" : "text-blue-900"}`}
+              >
+                Xin chào!
               </h4>
+              <p
+                className={`mt-2 text-sm max-w-sm font-medium ${isDark ? "text-blue-100/80" : "text-blue-800"}`}
+              >
+                Tôi có thể giúp bạn xây dựng cấu hình PC hoàn hảo. Hãy mô tả nhu
+                cầu của bạn.
+              </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={handleCopy} className={actionButtonClass}>
-                <Copy className="h-3.5 w-3.5" /> Copy
-              </button>
-              <button onClick={handleExport} className={actionButtonClass}>
-                <Download className="h-3.5 w-3.5" /> Export
-              </button>
-              <button onClick={handleShare} className={actionButtonClass}>
-                <Share2 className="h-3.5 w-3.5" /> Chia sẻ
-              </button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg">
+              {[
+                {
+                  label: "Gaming 25 triệu",
+                  gradient:
+                    "from-rose-500/20 to-pink-500/20 border-rose-500/40",
+                },
+                {
+                  label: "Văn phòng 10 triệu",
+                  gradient:
+                    "from-amber-500/20 to-orange-500/20 border-amber-500/40",
+                },
+                {
+                  label: "Đồ họa 3D 50 triệu",
+                  gradient:
+                    "from-emerald-500/20 to-teal-500/20 border-emerald-500/40",
+                },
+              ].map((s) => (
+                <button
+                  key={s.label}
+                  onClick={() => {
+                    setQuery(s.label);
+                    textareaRef.current?.focus();
+                  }}
+                  className={`rounded-lg border px-4 py-2 text-xs font-extrabold transition-all transform hover:scale-110 active:scale-95 backdrop-blur-sm ${
+                    isDark
+                      ? `bg-gradient-to-br ${s.gradient} text-white/95 hover:text-white hover:border-opacity-100`
+                      : `bg-gradient-to-br ${s.gradient} text-white font-extrabold hover:shadow-lg border-opacity-70 shadow-md`
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
             </div>
           </div>
+        )}
 
-          {/* ── BUILD RESULT ── */}
-          {mode === "build" &&
-            result.data.build &&
-            (() => {
-              const build = result.data.build;
-              const comps = build.components
-                ? Object.entries(build.components)
-                : [];
-              return (
-                <div className={`${sectionClass} space-y-5`}>
-                  {result.data.explanation && (
-                    <div className="relative overflow-hidden rounded-[24px] border border-cyan-400/15 bg-gradient-to-br from-cyan-500/10 via-indigo-500/10 to-transparent p-5">
-                      <div className="absolute right-0 top-0 h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl" />
-                      <p className="relative text-sm italic font-medium leading-relaxed text-slate-100">
-                        <span className="mr-2 font-serif text-2xl text-cyan-300/50">
-                          "
-                        </span>
-                        {stripMock(result.data.explanation)}
-                        <span className="ml-2 font-serif text-2xl text-cyan-300/50">
-                          "
-                        </span>
-                      </p>
-                    </div>
-                  )}
+        {/* Messages */}
+        {messages.map((msg, idx) => {
+          const rainbowStyles = [
+            {
+              bg: "linear-gradient(135deg, rgba(34,211,238,0.4), rgba(59,130,246,0.4))",
+              border: "rgba(34,211,238,0.5)",
+              shadow: "rgba(34,211,238,0.2)",
+            },
+            {
+              bg: "linear-gradient(135deg, rgba(168,85,247,0.4), rgba(99,102,241,0.4))",
+              border: "rgba(168,85,247,0.5)",
+              shadow: "rgba(168,85,247,0.2)",
+            },
+            {
+              bg: "linear-gradient(135deg, rgba(16,185,129,0.4), rgba(34,211,238,0.4))",
+              border: "rgba(16,185,129,0.5)",
+              shadow: "rgba(16,185,129,0.2)",
+            },
+            {
+              bg: "linear-gradient(135deg, rgba(244,63,94,0.4), rgba(236,72,153,0.4))",
+              border: "rgba(244,63,94,0.5)",
+              shadow: "rgba(244,63,94,0.2)",
+            },
+            {
+              bg: "linear-gradient(135deg, rgba(251,146,60,0.4), rgba(255,165,0,0.4))",
+              border: "rgba(251,146,60,0.5)",
+              shadow: "rgba(251,146,60,0.2)",
+            },
+            {
+              bg: "linear-gradient(135deg, rgba(20,184,166,0.4), rgba(16,185,129,0.4))",
+              border: "rgba(20,184,166,0.5)",
+              shadow: "rgba(20,184,166,0.2)",
+            },
+          ];
+          const assistantMsgIndex = messages.filter(
+            (m, i) => m.role === "assistant" && i < idx,
+          ).length;
+          const styleIdx = assistantMsgIndex % rainbowStyles.length;
+          const currentStyle =
+            msg.role === "assistant" ? rainbowStyles[styleIdx] : null;
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className={`${statCardClass} border-emerald-400/15`}>
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <div className="rounded-2xl bg-gradient-to-br from-emerald-500 to-green-500 p-2.5 text-white shadow-lg shadow-emerald-500/20">
-                          <DollarSign className="h-4 w-4" />
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-300/80">
-                          Tổng chi phí
-                        </span>
-                      </div>
-                      <p className="text-2xl font-black text-emerald-300">
-                        {Number(build.estimated_total_cost).toLocaleString(
-                          "vi-VN",
-                        )}
-                        <span className="ml-1 text-base text-emerald-400">
-                          ₫
-                        </span>
-                      </p>
-                      {build.cost_over_budget > 0 && (
-                        <p className="mt-2 text-xs font-semibold text-orange-300">
-                          +
-                          {Number(build.cost_over_budget).toLocaleString(
-                            "vi-VN",
-                          )}
-                          ₫ vượt ngân sách
-                        </p>
-                      )}
-                    </div>
-                    {build.compatibility && (
-                      <div className={statCardClass}>
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                          <div className="rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 p-2.5 text-white shadow-lg shadow-cyan-500/20">
-                            <Gauge className="h-4 w-4" />
-                          </div>
-                          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                            Tương thích
-                          </span>
-                        </div>
-                        <p className="text-2xl font-black text-white">
-                          {build.compatibility.compatibility_score ?? "—"}
-                          <span className="ml-1 text-base text-slate-400">
-                            /100
-                          </span>
-                        </p>
-                      </div>
-                    )}
-                    <div className={statCardClass}>
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <div className="rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 p-2.5 text-white shadow-lg shadow-violet-500/20">
-                          <Wrench className="h-4 w-4" />
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                          Linh kiện
-                        </span>
-                      </div>
-                      <p className="text-2xl font-black text-white">
-                        {comps.length}
-                        <span className="ml-1 text-base text-slate-400">
-                          món
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-400">
-                        Cấu hình chi tiết
-                      </p>
-                      <p className="mt-1 text-sm text-slate-400">
-                        Mỗi linh kiện được tách card để quét nhanh hơn trên nền
-                        tối.
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {comps.map(([key, comp]: any) => {
-                        const Icon = CATEGORY_ICONS[key] || Box;
-                        const label = CATEGORY_LABELS[key] || key.toUpperCase();
-                        const gradient =
-                          CATEGORY_COLORS[key] ||
-                          "from-indigo-600 to-indigo-400";
-                        return (
-                          <div
-                            key={key}
-                            className={`${tileClass} group relative overflow-hidden p-4 hover:-translate-y-1 hover:border-cyan-400/30 hover:bg-white/[0.07] hover:shadow-[0_18px_38px_rgba(34,211,238,0.08)]`}
-                          >
-                            <div className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl" />
-                            <div className="relative flex items-start gap-4">
-                              <div
-                                className={`flex h-14 w-14 items-center justify-center rounded-[20px] bg-gradient-to-br ${gradient} shrink-0 shadow-lg`}
-                              >
-                                <Icon className="h-6 w-6 text-white" />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-start justify-between gap-3">
-                                  <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">
-                                    {label}
-                                  </p>
-                                  <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-1 text-[10px] font-bold text-emerald-300">
-                                    Ready
-                                  </div>
-                                </div>
-                                <p className="mt-2 line-clamp-2 text-sm font-bold leading-6 text-white">
-                                  {comp.product_name || comp.name || "—"}
-                                </p>
-                                {comp.price && (
-                                  <p className="mt-3 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                                    {Number(comp.price).toLocaleString("vi-VN")}
-                                    ₫
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {onApplyBuild && (
-                    <button
-                      onClick={() => {
-                        onApplyBuild(build);
-                        toast.success("Đã áp dụng cấu hình!");
-                      }}
-                      className="flex w-full items-center justify-center gap-3 rounded-[22px] bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-5 py-4 text-base font-bold text-white shadow-[0_18px_40px_rgba(59,130,246,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(59,130,246,0.4)]"
-                    >
-                      <Check className="h-5 w-5" />
-                      Áp dụng cấu hình này vào PC Builder
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
-
-          {/* ── ANALYZE RESULT ── */}
-          {mode === "analyze" &&
-            (() => {
-              const d = result.data;
-              const typeInfo = BUILD_TYPE_INFO[d.buildType] || {
-                label: d.buildType,
-                icon: "📦",
-                color: "text-slate-300",
-              };
-              return (
-                <div className={`${sectionClass} space-y-5`}>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {d.buildType && (
-                      <div className={statCardClass}>
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                          Loại Build
-                        </p>
-                        <p className={`text-base font-bold ${typeInfo.color}`}>
-                          {typeInfo.icon} {typeInfo.label}
-                        </p>
-                      </div>
-                    )}
-                    {d.budget && (
-                      <div className={`${statCardClass} border-emerald-400/15`}>
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-emerald-300/80">
-                          Ngân sách
-                        </p>
-                        <p className="text-base font-bold text-emerald-300">
-                          {Number(d.budget).toLocaleString("vi-VN")}₫
-                        </p>
-                      </div>
-                    )}
-                    {d.confidence !== undefined && (
-                      <div className={statCardClass}>
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                          Độ chắc chắn
-                        </p>
-                        <div className="mb-2 flex items-end gap-1">
-                          <p className="text-base font-black text-white">
-                            {Math.round(d.confidence * 100)}
-                          </p>
-                          <p className="mb-0.5 text-xs text-slate-400">%</p>
-                        </div>
-                        <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 transition-all duration-700"
-                            style={{
-                              width: `${Math.round(d.confidence * 100)}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {d.cpuPreference && (
-                      <div className={statCardClass}>
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                          CPU
-                        </p>
-                        <div
-                          className={`inline-flex rounded-xl px-3 py-1.5 text-xs font-bold capitalize
-                        ${d.cpuPreference === "performance" ? "bg-red-500/15 text-red-300" : d.cpuPreference === "balanced" ? "bg-blue-500/15 text-blue-300" : "bg-white/10 text-slate-300"}`}
-                        >
-                          {d.cpuPreference}
-                        </div>
-                      </div>
-                    )}
-                    {d.gpuPreference && (
-                      <div className={statCardClass}>
-                        <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                          GPU
-                        </p>
-                        <div
-                          className={`inline-flex rounded-xl px-3 py-1.5 text-xs font-bold capitalize
-                        ${d.gpuPreference === "none" ? "bg-white/10 text-slate-300" : d.gpuPreference === "performance" ? "bg-emerald-500/15 text-emerald-300" : "bg-blue-500/15 text-blue-300"}`}
-                        >
-                          {d.gpuPreference === "none"
-                            ? "Không cần"
-                            : d.gpuPreference}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {d.explanation && (
-                    <div className="rounded-[24px] border border-cyan-400/15 bg-gradient-to-br from-cyan-500/10 via-indigo-500/10 to-transparent p-5">
-                      <p className="text-sm italic font-medium leading-relaxed text-slate-100">
-                        "{stripMock(d.explanation)}"
-                      </p>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => {
-                      setMode("build");
-                      handleSubmit("build");
-                    }}
-                    className="flex w-full items-center justify-center gap-2 rounded-[22px] bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 px-5 py-4 text-sm font-bold text-white shadow-[0_18px_40px_rgba(59,130,246,0.28)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_rgba(59,130,246,0.4)]"
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Tạo build theo phân tích này
-                  </button>
-                </div>
-              );
-            })()}
-
-          {mode === "recommendations" && recs.length > 0 && (
-            <div className={`${sectionClass} space-y-4`}>
-              {result.data.requirements && (
-                <div className="rounded-[24px] border border-cyan-400/15 bg-gradient-to-br from-cyan-500/10 via-indigo-500/10 to-transparent p-4">
-                  <p className="text-xs font-medium italic leading-relaxed text-slate-100">
-                    {result.data.requirements}
-                  </p>
+          return (
+            <div
+              key={msg.id}
+              className={`flex gap-3 transition-all duration-300 transform ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+              style={{ animation: `slideIn 0.3s ease-out ${idx * 50}ms both` }}
+            >
+              {/* Avatar */}
+              {msg.role === "assistant" && (
+                <div
+                  className="h-8 w-8 shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mt-0.5 shadow-lg"
+                  style={{ boxShadow: "0 0 20px rgba(34,211,238,0.4)" }}
+                >
+                  <Bot className="h-4 w-4 text-white" />
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {recs.map((item: any, i: number) => {
-                  const cat = (item.type || item.category || "").toLowerCase();
-                  const Icon = CATEGORY_ICONS[cat] || Box;
-                  const gradient =
-                    CATEGORY_COLORS[cat] || "from-indigo-600 to-indigo-400";
-                  const label =
-                    CATEGORY_LABELS[cat] || item.type || item.category || "";
-                  return (
-                    <div
-                      key={i}
-                      className={`${tileClass} group relative overflow-hidden p-4 hover:-translate-y-1 hover:border-cyan-400/30 hover:bg-white/[0.07] hover:shadow-[0_18px_38px_rgba(34,211,238,0.08)]`}
-                    >
-                      <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-cyan-400/10 blur-2xl" />
-                      <div className="relative mb-3 flex items-center gap-3">
+              {msg.role === "user" && (
+                <div
+                  className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center mt-0.5 shadow-lg ${
+                    isDark
+                      ? "bg-gradient-to-br from-cyan-500 to-blue-500"
+                      : "bg-gradient-to-br from-blue-500 to-blue-600"
+                  }`}
+                  style={
+                    isDark
+                      ? { boxShadow: "0 0 16px rgba(34,211,238,0.4)" }
+                      : { boxShadow: "0 0 12px rgba(59,130,246,0.4)" }
+                  }
+                >
+                  <User className="h-4 w-4 text-white" />
+                </div>
+              )}
+
+              {/* Bubble */}
+              <div
+                className={`max-w-[75%] ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+              >
+                <div
+                  className={`rounded-2xl px-4 py-3 backdrop-blur-xl transition-all duration-300 ${
+                    msg.role === "user"
+                      ? "bg-gradient-to-br from-blue-500 to-cyan-500 text-white border border-blue-400/60 font-medium"
+                      : isDark
+                        ? "text-slate-100 border font-medium"
+                        : "bg-gradient-to-br from-blue-100 to-cyan-100 text-blue-950 border border-blue-300/80 shadow-md font-semibold"
+                  }`}
+                  style={
+                    msg.role === "assistant" && isDark && currentStyle
+                      ? {
+                          background: currentStyle.bg,
+                          borderColor: currentStyle.border,
+                          boxShadow: `0 8px 32px ${currentStyle.shadow}`,
+                        }
+                      : msg.role === "user"
+                        ? { boxShadow: "0 8px 24px rgba(59,130,246,0.3)" }
+                        : !isDark
+                          ? { boxShadow: "0 4px 16px rgba(59,130,246,0.15)" }
+                          : {}
+                  }
+                >
+                  {/* Loading spinner - typing effect */}
+                  {msg.loading ? (
+                    <div className="flex items-center gap-2 py-2">
+                      <div className="flex gap-1">
                         <div
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${gradient} shadow-lg`}
-                        >
-                          <Icon className="h-5 w-5 text-white" />
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                          {label}
-                        </span>
+                          className="w-2 h-2 rounded-full bg-white/90 animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 rounded-full bg-white/90 animate-bounce"
+                          style={{ animationDelay: "150ms" }}
+                        ></div>
+                        <div
+                          className="w-2 h-2 rounded-full bg-white/90 animate-bounce"
+                          style={{ animationDelay: "300ms" }}
+                        ></div>
                       </div>
-                      <p className="relative mb-1 text-sm font-bold text-white">
-                        {item.name || item.product_name || "—"}
-                      </p>
-                      {item.price && (
-                        <p className="mb-2 inline-flex rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                          {Number(item.price).toLocaleString("vi-VN")}₫
-                        </p>
-                      )}
-                      {item.reason && (
-                        <p className="text-xs italic leading-relaxed text-slate-400">
-                          {item.reason}
-                        </p>
-                      )}
+                      <span className="text-sm text-white font-bold">
+                        Đang suy nghĩ...
+                      </span>
                     </div>
-                  );
-                })}
+                  ) : (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap font-semibold">
+                      {msg.content}
+                    </p>
+                  )}
+
+                  {/* Rich result cards */}
+                  {!msg.loading && msg.role === "assistant" && msg.data && (
+                    <BuildResult
+                      data={msg.data}
+                      isDark={isDark}
+                      onApplyBuild={onApplyBuild}
+                    />
+                  )}
+                </div>
               </div>
             </div>
-          )}
+          );
+        })}
 
-          {mode === "recommendations" && recs.length === 0 && result.data && (
-            <div className={`${sectionClass} rounded-[24px]`}>
-              <p className="mb-3 text-xs font-bold uppercase tracking-[0.24em] text-slate-400">
-                Raw Response
-              </p>
-              <pre className="max-h-96 overflow-auto rounded-2xl border border-white/10 bg-black/30 p-4 font-mono text-xs leading-relaxed whitespace-pre-wrap text-indigo-100/70">
-                {typeof result.data === "string"
-                  ? result.data
-                  : JSON.stringify(result.data, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
+        <div ref={bottomRef} />
+      </div>
 
-      {result && !result.success && (
-        <div className="mt-6 flex items-start gap-3 rounded-[24px] border border-red-400/20 bg-red-400/10 p-4 shadow-sm backdrop-blur">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-300" />
-          <p className="text-sm font-medium text-red-300">
-            {result.message || "Có lỗi xảy ra. Vui lòng thử lại."}
-          </p>
+      {/* ── INPUT BAR ── */}
+      <div
+        className={`border-t px-4 py-3 ${
+          isDark
+            ? "border-white/10 bg-gradient-to-r from-slate-900/80 via-blue-900/30 to-slate-900/80 backdrop-blur-sm"
+            : "border-blue-300/40 bg-gradient-to-r from-blue-100/40 via-blue-50/40 to-cyan-100/40 backdrop-blur-sm"
+        }`}
+      >
+        <div
+          className={`flex items-end gap-2 rounded-2xl border px-4 py-3 focus-within:ring-2 transition-all duration-300 ${
+            isDark
+              ? "border-cyan-500/40 bg-gradient-to-br from-slate-800/70 via-blue-800/40 to-slate-800/70 focus-within:border-cyan-400/80 focus-within:ring-2 focus-within:ring-cyan-400/40 hover:border-cyan-500/60 backdrop-blur-lg shadow-lg shadow-cyan-500/10"
+              : "border-blue-400/50 bg-gradient-to-br from-blue-100/80 via-blue-50/60 to-cyan-100/80 focus-within:border-blue-500 focus-within:ring-blue-400/50 hover:border-blue-500/60 backdrop-blur-sm shadow-lg shadow-blue-300/30"
+          }`}
+        >
+          <textarea
+            ref={textareaRef}
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              autoResize();
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="Hãy mô tả cấu hình PC bạn cần..."
+            rows={1}
+            disabled={loading}
+            className={`flex-1 resize-none bg-transparent text-sm outline-none leading-relaxed disabled:opacity-50 transition-colors font-semibold ${
+              isDark
+                ? "text-blue-100 placeholder:text-cyan-300/50"
+                : "text-blue-900 placeholder:text-blue-700"
+            }`}
+            style={{ maxHeight: "120px" }}
+          />
+          <button
+            onClick={handleSend}
+            disabled={loading || !query.trim()}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed transform hover:scale-110 active:scale-95 font-semibold ${
+              isDark
+                ? "bg-gradient-to-br from-cyan-500 via-blue-500 to-cyan-600 hover:from-cyan-400 hover:via-blue-400 hover:to-cyan-500 shadow-lg shadow-cyan-500/40 hover:shadow-cyan-500/60"
+                : "bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 hover:from-blue-400 hover:via-blue-500 hover:to-blue-600 shadow-lg shadow-blue-400/50 hover:shadow-blue-400/70"
+            } text-white`}
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
