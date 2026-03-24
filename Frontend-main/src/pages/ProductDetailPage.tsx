@@ -374,7 +374,7 @@ export function ProductDetailPage() {
                     className={`flex justify-between items-center py-2 border-b last:border-b-0 ${isDark ? "border-purple-500/20" : "border-purple-100"}`}
                   >
                     <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                      {toViLabel(spec.spec_name)}
+                      {spec.spec_name}
                     </span>
                     <span className={`text-sm font-semibold text-right max-w-[60%] ml-4 ${isDark ? "text-white" : "text-gray-800"}`}>
                       {String(spec.spec_value)}
