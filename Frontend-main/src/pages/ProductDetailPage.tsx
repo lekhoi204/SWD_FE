@@ -321,7 +321,9 @@ export function ProductDetailPage() {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div className={`rounded-xl flex items-center justify-center p-3 overflow-hidden h-[240px] max-w-[320px] ${isDark ? "bg-white border border-gray-100" : "bg-white border border-gray-200 shadow-lg"}`}>
+        <div
+          className={`rounded-xl flex items-center justify-center p-3 overflow-hidden h-[240px] max-w-[320px] ${isDark ? "bg-white border border-gray-100" : "bg-white border border-gray-200 shadow-lg"}`}
+        >
           <img
             src={product.image}
             alt={product.name}
@@ -331,7 +333,9 @@ export function ProductDetailPage() {
 
         <div className="lg:col-span-2 space-y-6">
           <div>
-            <h1 className={`text-3xl md:text-4xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>
+            <h1
+              className={`text-3xl md:text-4xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}
+            >
               {product.name}
             </h1>
             <div className="flex items-baseline gap-4 mb-4">
@@ -347,25 +351,33 @@ export function ProductDetailPage() {
                 <span className="text-red-500">Hết hàng</span>
               )}
             </div>
-            <p className={`leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+            <p
+              className={`leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}
+            >
               {product.description}
             </p>
           </div>
 
           {specifications.length > 0 && (
-            <div className={`backdrop-blur-sm rounded-xl border p-6 ${isDark ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-purple-500/30" : "bg-white/80 border-purple-300 shadow-lg"}`}>
-              <h3 className={`text-xl font-bold mb-4 ${isDark ? "text-purple-400" : "text-purple-600"}`}>
+            <div
+              className={`backdrop-blur-sm rounded-xl border p-6 ${isDark ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-purple-500/30" : "bg-white/80 border-purple-300 shadow-lg"}`}
+            >
+              <h3
+                className={`text-xl font-bold mb-4 ${isDark ? "text-purple-400" : "text-purple-600"}`}
+              >
                 Thông số kỹ thuật
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {specifications.map((spec) => (
                   <div
                     key={spec.spec_id}
-                    className={`flex justify-between border-b pb-2 ${isDark ? "border-purple-500/20" : "border-purple-200"}`}
+                    className={`flex justify-between items-center py-2 border-b last:border-b-0 ${isDark ? "border-purple-500/20" : "border-purple-100"}`}
                   >
-                    <span className={isDark ? "text-gray-400" : "text-gray-600"}>{spec.spec_name}</span>
-                    <span className={`font-semibold text-right ${isDark ? "text-white" : "text-black"}`}>
-                      {spec.spec_value}
+                    <span className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                      {toViLabel(spec.spec_name)}
+                    </span>
+                    <span className={`text-sm font-semibold text-right max-w-[60%] ml-4 ${isDark ? "text-white" : "text-gray-800"}`}>
+                      {String(spec.spec_value)}
                     </span>
                   </div>
                 ))}
@@ -373,8 +385,12 @@ export function ProductDetailPage() {
             </div>
           )}
 
-          <div className={`backdrop-blur-sm rounded-xl border p-6 ${isDark ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-purple-500/30" : "bg-white/80 border-purple-300 shadow-lg"}`}>
-            <h3 className={`text-xl font-bold mb-4 ${isDark ? "text-purple-400" : "text-purple-600"}`}>
+          <div
+            className={`backdrop-blur-sm rounded-xl border p-6 ${isDark ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-purple-500/30" : "bg-white/80 border-purple-300 shadow-lg"}`}
+          >
+            <h3
+              className={`text-xl font-bold mb-4 ${isDark ? "text-purple-400" : "text-purple-600"}`}
+            >
               Phương thức thanh toán
             </h3>
             <div className="grid grid-cols-2 gap-3">
@@ -388,9 +404,15 @@ export function ProductDetailPage() {
                       : `${isDark ? "border-purple-500/30 bg-purple-900/20 hover:border-purple-400/50" : "border-purple-200 hover:border-purple-400/50"}`
                   }`}
                 >
-                  <div className={`font-semibold mb-1 ${isDark ? "text-white" : "text-black"}`}>{plan.name}</div>
+                  <div
+                    className={`font-semibold mb-1 ${isDark ? "text-white" : "text-black"}`}
+                  >
+                    {plan.name}
+                  </div>
                   {plan.months > 0 && (
-                    <div className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                    <div
+                      className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                    >
                       {plan.interest > 0
                         ? `Lãi suất ${plan.interest}%`
                         : "Lãi suất 0%"}
@@ -401,17 +423,25 @@ export function ProductDetailPage() {
             </div>
 
             {selectedPlan.months > 0 && (
-              <div className={`mt-4 p-4 rounded-lg border ${isDark ? "bg-blue-500/20 border-blue-500/30" : "bg-blue-50 border-blue-200"}`}>
-                <div className={`text-sm mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+              <div
+                className={`mt-4 p-4 rounded-lg border ${isDark ? "bg-blue-500/20 border-blue-500/30" : "bg-blue-50 border-blue-200"}`}
+              >
+                <div
+                  className={`text-sm mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
                   Trả góp {selectedPlan.months} tháng
                   {selectedPlan.interest > 0 &&
                     ` (Lãi suất ${selectedPlan.interest}%)`}
                 </div>
-                <div className={`text-2xl font-bold ${isDark ? "text-blue-400" : "text-blue-600"}`}>
+                <div
+                  className={`text-2xl font-bold ${isDark ? "text-blue-400" : "text-blue-600"}`}
+                >
                   {monthlyPayment.toLocaleString("vi-VN")}₫/tháng
                 </div>
                 {selectedPlan.interest > 0 && (
-                  <div className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
+                  <div
+                    className={`text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                  >
                     Tổng thanh toán: {totalWithInterest.toLocaleString("vi-VN")}
                     ₫
                   </div>
@@ -420,9 +450,15 @@ export function ProductDetailPage() {
             )}
           </div>
 
-          <div className={`backdrop-blur-sm rounded-xl border p-6 ${isDark ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-purple-500/30" : "bg-white/80 border-purple-300 shadow-lg"}`}>
+          <div
+            className={`backdrop-blur-sm rounded-xl border p-6 ${isDark ? "bg-gradient-to-br from-purple-900/40 to-purple-800/20 border-purple-500/30" : "bg-white/80 border-purple-300 shadow-lg"}`}
+          >
             <div className="flex items-center gap-4 mb-4">
-              <span className={`font-semibold ${isDark ? "text-white" : "text-black"}`}>Số lượng:</span>
+              <span
+                className={`font-semibold ${isDark ? "text-white" : "text-black"}`}
+              >
+                Số lượng:
+              </span>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -431,7 +467,9 @@ export function ProductDetailPage() {
                 >
                   <Minus className="w-4 h-4" />
                 </button>
-                <span className={`text-2xl font-bold w-12 text-center ${isDark ? "text-white" : "text-black"}`}>
+                <span
+                  className={`text-2xl font-bold w-12 text-center ${isDark ? "text-white" : "text-black"}`}
+                >
                   {quantity}
                 </span>
                 <button
@@ -446,24 +484,30 @@ export function ProductDetailPage() {
               </div>
             </div>
 
-            <div className={`mb-4 p-4 rounded-lg ${isDark ? "bg-slate-900/50" : "bg-gray-100"}`}>
-              <div className={`flex justify-between mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+            <div
+              className={`mb-4 p-4 rounded-lg ${isDark ? "bg-slate-900/50" : "bg-gray-100"}`}
+            >
+              <div
+                className={`flex justify-between mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+              >
                 <span>Tạm tính:</span>
                 <span className="font-semibold">
                   {totalPrice.toLocaleString("vi-VN")}₫
                 </span>
               </div>
               {selectedPlan.interest > 0 && (
-                <div className={`flex justify-between mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>
-                  <span>
-                    Lãi suất ({selectedPlan.interest}%):
-                  </span>
+                <div
+                  className={`flex justify-between mb-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  <span>Lãi suất ({selectedPlan.interest}%):</span>
                   <span className="font-semibold">
                     {(totalWithInterest - totalPrice).toLocaleString("vi-VN")}₫
                   </span>
                 </div>
               )}
-              <div className={`flex justify-between text-xl font-bold pt-2 border-t ${isDark ? "text-purple-400 border-purple-500/30" : "text-purple-600 border-purple-200"}`}>
+              <div
+                className={`flex justify-between text-xl font-bold pt-2 border-t ${isDark ? "text-purple-400 border-purple-500/30" : "text-purple-600 border-purple-200"}`}
+              >
                 <span>Tổng cộng:</span>
                 <span>
                   {(selectedPlan.interest > 0

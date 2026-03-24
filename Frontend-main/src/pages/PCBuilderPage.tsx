@@ -703,6 +703,33 @@ export function PCBuilderPage() {
     toast.info('Đã xóa cấu hình build');
   };
 
+  const handleApplyAIBuild = (aiBuild: any) => {
+    if (!aiBuild || !aiBuild.components) return;
+
+    const newComponents = buildComponents.map((comp) => {
+      // AI uses: cpu, mainboard, ram, gpu, storage, psu, cooler, case
+      const aiKey = comp.category === "motherboard" ? "mainboard" : comp.category;
+      const aiComp = aiBuild.components[aiKey];
+
+      if (aiComp) {
+        const productId = aiComp.product_id;
+        // allProducts is available in scope
+        const found = allProducts.find((p) => Number(p.id) === Number(productId));
+        if (found) {
+          return { ...comp, product: found };
+        }
+      }
+      return comp;
+    });
+
+    setBuildComponents(newComponents);
+    if (aiBuild.budget_total || aiBuild.estimated_total_cost) {
+       // Optional: update budget slider to match
+       setBudget(Number(aiBuild.budget_total || aiBuild.estimated_total_cost));
+    }
+    toast.success("Đã áp dụng cấu hình AI đề xuất!");
+  };
+
   const addBuildToCart = () => {
     const selected = buildComponents
       .filter((c): c is BuildComponent & { product: Product } => c.product !== null)

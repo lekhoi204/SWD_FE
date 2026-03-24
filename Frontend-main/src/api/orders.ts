@@ -79,3 +79,12 @@ export async function updateOrderApi(
 export async function deleteOrderApi(id: string): Promise<void> {
   await apiClient(`/orders/${id}`, { method: "DELETE" });
 }
+
+export async function getOrdersByUserIdApi(
+  userId: number,
+): Promise<SharedOrderDetail[]> {
+  const res = await apiClient<{ success: boolean; data: SharedOrderDetail[] }>(
+    `/orders/user/${userId}`,
+  );
+  return res.data || [];
+}

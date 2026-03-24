@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, Search, X, Tag, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
-import { getPromotionsApi, type Promotion } from '@/api/promotions';
-import { apiClient } from '@/api/client';
+import { getPromotionsApi, createPromotionApi, updatePromotionApi, deletePromotionApi, type Promotion } from '@/api/promotions';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const formatDate = (d: string | null) => d ? new Date(d).toLocaleDateString('vi-VN') : '—';
@@ -67,14 +66,14 @@ export function ManagerPromotionsPage() {
       const body = {
         code: form.code.toUpperCase(),
         discount_percent: Number(form.discount_percent),
-        valid_from: form.valid_from || null,
-        valid_to: form.valid_to || null,
+        valid_from: form.valid_from || undefined,
+        valid_to: form.valid_to || undefined,
       };
       if (modal === 'create') {
-        await apiClient('/promotions', { method: 'POST', body });
+        await createPromotionApi(body);
         toast.success('Thêm khuyến mãi thành công');
       } else if (modal === 'edit' && editPromo) {
-        await apiClient(`/promotions/${editPromo.promotion_id}`, { method: 'PUT', body });
+        await updatePromotionApi(editPromo.promotion_id, body);
         toast.success('Cập nhật khuyến mãi thành công');
       }
       closeModal();
@@ -88,7 +87,7 @@ export function ManagerPromotionsPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await apiClient(`/promotions/${deleteTarget.promotion_id}`, { method: 'DELETE' });
+      await deletePromotionApi(deleteTarget.promotion_id);
       toast.success('Xóa khuyến mãi thành công');
       setDeleteTarget(null);
       await fetchData();

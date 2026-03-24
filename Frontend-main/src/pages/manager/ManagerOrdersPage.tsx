@@ -3,7 +3,7 @@ import { Search, X, Eye, Trash2, Pencil, Package, Clock, CheckCircle, XCircle, T
 import { toast } from 'sonner';
 import { getOrdersApi, updateOrderApi, deleteOrderApi } from '@/api/orders';
 import { getProductsApi } from '@/api/products';
-import { adminCompleteOrderPayment } from '@/api/payments';
+import { adminCompleteOrderPayment, getPendingAdminCompletionApi } from '@/api/payments';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import type { OrderDetail, Product } from '@/types';
 
@@ -137,15 +137,24 @@ export function ManagerOrdersPage() {
   const [deleteTarget, setDeleteTarget] = useState<OrderDetail | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [completingOrderId, setCompletingOrderId] = useState<number | null>(null);
+  const [pendingPayments, setPendingPayments] = useState<any[]>([]);
+  const [showPendingBanner, setShowPendingBanner] = useState(true);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [ordersData, productsData] = await Promise.all([getOrdersApi(), getProductsApi()]);
+      const [ordersData, productsData, pendingRes] = await Promise.all([
+        getOrdersApi(),
+        getProductsApi(),
+        getPendingAdminCompletionApi().catch(() => null),
+      ]);
       setOrders(ordersData.map((o) => ({ ...normalizeOrderFromApi(o), status: normalizeStatus(o.status) })));
       const pMap: Record<number, Product> = {};
       productsData.forEach(p => pMap[Number(p.id)] = p);
       setProductsMap(pMap);
+      const pendingList = pendingRes?.data ?? pendingRes ?? [];
+      setPendingPayments(Array.isArray(pendingList) ? pendingList : []);
+      setShowPendingBanner(true);
     } catch (err) {
       console.error(err);
       toast.error('Không thể tải dữ liệu');
@@ -218,6 +227,53 @@ export function ManagerOrdersPage() {
 
   return (
     <div>
+      {/* Pending Payments Alert Banner */}
+      {showPendingBanner && pendingPayments.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '14px 20px', borderRadius: '14px', marginBottom: '20px',
+          background: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(6,182,212,0.08))',
+          border: '1px solid rgba(16,185,129,0.3)',
+          gap: '12px', flexWrap: 'wrap',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '10px',
+              background: 'rgba(16,185,129,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <CheckCircle2 style={{ width: 18, height: 18, color: '#34d399' }} />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#34d399' }}>
+                {pendingPayments.length} đơn hàng đang chờ xác nhận thanh toán
+              </p>
+              <p style={{ margin: 0, fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                Đơn QR đã chuyển khoản, cần admin/manager xác nhận để hoàn tất
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button
+              onClick={() => { setFilterStatus('Chờ duyệt'); setShowPendingBanner(false); }}
+              style={{
+                padding: '8px 16px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg, #10b981, #06b6d4)',
+                color: '#fff', fontSize: '13px', fontWeight: 700,
+              }}
+            >
+              Xem ngay
+            </button>
+            <button
+              onClick={() => setShowPendingBanner(false)}
+              style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', display: 'flex', padding: '4px' }}
+            >
+              <X style={{ width: 16, height: 16 }} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>

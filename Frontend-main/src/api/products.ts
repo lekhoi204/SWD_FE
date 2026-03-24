@@ -125,3 +125,32 @@ export async function getProductByIdApi(id: string): Promise<Product> {
   const res = await apiClient<BackendProductResponse>(`/products/${id}`);
   return mapBackendProduct(res.data);
 }
+
+export async function createProductApi(formData: FormData): Promise<Product> {
+  const res = await apiClient<{ success: boolean; data: BackendProduct }>(
+    "/products",
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
+  return mapBackendProduct(res.data);
+}
+
+export async function updateProductApi(
+  id: string | number,
+  formData: FormData,
+): Promise<Product> {
+  const res = await apiClient<{ success: boolean; data: BackendProduct }>(
+    `/products/${id}`,
+    {
+      method: "PUT",
+      body: formData,
+    },
+  );
+  return mapBackendProduct(res.data);
+}
+
+export async function deleteProductApi(id: string | number): Promise<void> {
+  await apiClient(`/products/${id}`, { method: "DELETE" });
+}

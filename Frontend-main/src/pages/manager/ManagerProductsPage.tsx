@@ -10,7 +10,7 @@ import {
   ListChecks,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getProductsApi } from "@/api/products";
+import { getProductsApi, createProductApi, updateProductApi, deleteProductApi } from "@/api/products";
 import { getCategoriesApi, type Category } from "@/api/categories";
 import {
   getSpecsByProductIdApi,
@@ -156,13 +156,10 @@ export function ManagerProductsPage() {
       if (imageFile) formData.append("image", imageFile);
 
       if (modal === "create") {
-        await apiClient("/products", { method: "POST", body: formData });
+        await createProductApi(formData);
         toast.success("Thêm sản phẩm thành công");
       } else if (modal === "edit" && editProduct) {
-        await apiClient(`/products/${editProduct.id}`, {
-          method: "PUT",
-          body: formData,
-        });
+        await updateProductApi(editProduct.id, formData);
         toast.success("Cập nhật sản phẩm thành công");
       }
       closeModal();
@@ -178,7 +175,7 @@ export function ManagerProductsPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await apiClient(`/products/${deleteTarget.id}`, { method: "DELETE" });
+      await deleteProductApi(deleteTarget.id);
       toast.success("Xóa sản phẩm thành công");
       setDeleteTarget(null);
       await fetchData();

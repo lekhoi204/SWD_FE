@@ -53,6 +53,14 @@ export async function adminCompleteOrderPayment(orderId: number | string): Promi
   return res;
 }
 
+/** Admin/Manager: lấy danh sách đơn QR chờ xác nhận thanh toán */
+export async function getPendingAdminCompletionApi(): Promise<any> {
+  const res = await apiClient<{ success?: boolean; data?: any }>(
+    `/payments/admin/pending-completion`,
+  );
+  return res;
+}
+
 export default {
   createQrFullPayment,
   createQrInstallmentPayment,
@@ -60,4 +68,5 @@ export default {
   confirmPayment,
   adminCompletePayment,
   adminCompleteOrderPayment,
+  getPendingAdminCompletionApi,
 };
