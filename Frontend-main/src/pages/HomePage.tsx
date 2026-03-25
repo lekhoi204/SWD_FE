@@ -21,6 +21,8 @@ const CATEGORY_IMAGES: Record<string, string> = {
   case: "https://file.hstatic.net/200000636033/file/icon7_cdd85eba03974cb99a3941d076bf5d1b.png",
   cooling:
     "https://file.hstatic.net/200000636033/file/icon8_8f7b3fe2e8fb450b805857be9bb14edc.png",
+  cooler:
+    "https://file.hstatic.net/200000636033/file/icon8_8f7b3fe2e8fb450b805857be9bb14edc.png",
   monitor:
     "https://product.hstatic.net/200000722513/product/asus_pg27aqdm_gearvn_53c46bd0ca1f40f1a7abfb0246800081_e341bb95b0724bee845ba8f093678245_master.jpg",
   keyboard:
@@ -61,7 +63,11 @@ export function HomePage() {
 
   const featuredProducts = products.slice(0, 6);
   const categories = Object.entries(CATEGORY_LABELS).filter(
-    ([k]) => k !== "all" && k !== "psu",
+    ([k]) =>
+      k !== "all" &&
+      k !== "psu" &&
+      // Trùng label với `cooler`; slug này chỉ dùng cho URL/API
+      k !== "tan-nhiet-cpu",
   );
 
   return (

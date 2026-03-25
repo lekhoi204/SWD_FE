@@ -29,7 +29,6 @@ import {
   PC_BUILDER_CATEGORIES,
   PC_BUILDER_LABELS,
 } from "@/constants/categories";
-import { autoBuildApi, getBudgetRangeApi, getBudgetAllocationApi } from "@/api/compatibility";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { AIAssistant } from "@/components/AIAssistant";
 import BuildModal from "@/components/BuildModal";
@@ -249,10 +248,8 @@ type BuildComponent = {
   product: Product | null;
 };
 
-// Default allocations if API fails
-const DEFAULT_ALLOCATIONS: Record<string, number> = {
-  cpu: 0.25, gpu: 0.35, motherboard: 0.15, ram: 0.1, storage: 0.08, psu: 0.05, case: 0.02,
-};
+// Default budget range
+const DEFAULT_BUDGET_RANGE = { min: 10000000, max: 200000000, suggested: 30000000 };
 
 export function PCBuilderPage() {
   const { isDark } = useTheme();
@@ -263,8 +260,6 @@ export function PCBuilderPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [budget, setBudget] = useState(30000000);
-  const [budgetRange, setBudgetRange] = useState({ min: 10000000, max: 100000000, suggested: 30000000 });
-  const [allocations, setAllocations] = useState<Record<string, number>>(DEFAULT_ALLOCATIONS);
   const [buildComponents, setBuildComponents] = useState<BuildComponent[]>(
     PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null }))
   );
@@ -284,7 +279,6 @@ export function PCBuilderPage() {
   const [modalBuilds, setModalBuilds] = useState<any[]>([]);
   const [modalDefaultName, setModalDefaultName] = useState("");
   const [modalLoading, setModalLoading] = useState(false);
-  const [autoBuilding, setAutoBuilding] = useState(false);
   // collapsed / expanded categories and scroll refs
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>(
     () => {
@@ -297,7 +291,6 @@ export function PCBuilderPage() {
     PC_BUILDER_CATEGORIES[0] || "cpu",
   );
   const scrollRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const skipAutoBuildRef = useRef(false);
 
   function scrollCategory(category: string, delta: number) {
     const el = scrollRefs.current[category];
@@ -310,25 +303,11 @@ export function PCBuilderPage() {
     (async () => {
       try {
         setProductsLoading(true);
-        const [prods, rangeRes, allocRes] = await Promise.all([
-          getProductsApi({ limit: "1000" }),
-          getBudgetRangeApi(),
-          getBudgetAllocationApi()
-        ]);
-
-        if (mounted) {
-          setAllProducts(prods);
-          if (rangeRes.success) {
-            setBudgetRange(rangeRes.data);
-            setBudget(rangeRes.data.suggested);
-          }
-          if (allocRes.success) {
-            setAllocations(allocRes.data);
-          }
-        }
+        const prods = await getProductsApi({ limit: "1000" });
+        if (mounted) setAllProducts(prods);
       } catch (err) {
-        console.error("Failed to fetch initial data:", err);
-        if (mounted) toast.error("Không thể tải cấu hình hệ thống");
+        console.error("Failed to fetch products:", err);
+        if (mounted) toast.error("Không thể tải danh sách sản phẩm");
       } finally {
         if (mounted) setProductsLoading(false);
       }
@@ -672,10 +651,8 @@ export function PCBuilderPage() {
 
     setBuildComponents(newComponents);
 
-    // Sync budget with the new build's total price
     const newTotal = newComponents.reduce((sum, c) => sum + (c.product?.price ?? 0), 0);
     if (newTotal > 0) {
-      skipAutoBuildRef.current = true;
       setBudget(newTotal);
     }
 
@@ -691,68 +668,9 @@ export function PCBuilderPage() {
     }
   };
 
-  const autoBuild = async (overrideBudget?: number) => {
-    if (allProducts.length === 0) return;
-    
-    const targetBudget = overrideBudget ?? budget;
-    
-    try {
-      setAutoBuilding(true);
-      const res = await autoBuildApi({ budget: targetBudget });
-      if (!res || !res.components) {
-        toast.error("Không thể tự động build cấu hình cho ngân sách này");
-        return;
-      }
-
-      const components = res.components;
-      const newBuild = PC_BUILDER_CATEGORIES.map((category) => {
-        // Backend keys: cpu, mainboard, ram, gpu, storage, psu, cooler, case
-        const beKey = category === "motherboard" ? "mainboard" : category;
-        const beSelected = components[beKey];
-        
-        let product: Product | null = null;
-        if (beSelected && beSelected.product_id) {
-          const found = allProducts.find(p => Number(p.id) === Number(beSelected.product_id));
-          if (found) product = found;
-        }
-        
-        return { category, product };
-      });
-
-      setBuildComponents(newBuild);
-      if (overrideBudget === undefined) {
-        toast.success("Đã tự động cập nhật cấu hình theo ngân sách!");
-      }
-    } catch (err) {
-      console.error("Auto build failed:", err);
-      // Don't show toast for automatic updates to avoid spamming
-      if (overrideBudget !== undefined) {
-        toast.error("Lỗi khi tự động build cấu hình");
-      }
-    } finally {
-      setAutoBuilding(false);
-    }
-  };
-
-  // Auto-build when budget changes (debounced)
-  useEffect(() => {
-    if (allProducts.length === 0) return;
-    
-    const handler = setTimeout(() => {
-      if (skipAutoBuildRef.current) {
-        skipAutoBuildRef.current = false;
-        return;
-      }
-      autoBuild(budget);
-    }, 800); // 800ms debounce
-
-    return () => clearTimeout(handler);
-  }, [budget, allProducts.length]);
-
   const resetBuild = () => {
     setBuildComponents((prev) => prev.map((comp) => ({ ...comp, product: null })));
-    skipAutoBuildRef.current = true;
-    setBudget(budgetRange.min);
+    setBudget(DEFAULT_BUDGET_RANGE.min);
     toast.info('Đã xóa cấu hình build');
   };
 
@@ -966,29 +884,29 @@ export function PCBuilderPage() {
                 </span>
                 <input
                   type="range"
-                  min={budgetRange.min}
-                  max={budgetRange.max}
+                  min={DEFAULT_BUDGET_RANGE.min}
+                  max={DEFAULT_BUDGET_RANGE.max}
                   step={500000}
                   value={budget}
                   onChange={(e) => setBudget(Number(e.target.value))}
                   className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
                 <div
-                  className={`flex justify-between text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                  className={`flex justify-between text-xs mt-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}
                 >
-                  <span className="font-medium italic opacity-80">{(budgetRange.min / 1000000).toFixed(0)}Tr₫</span>
-                  <div className="flex flex-col items-center">
-                    <span className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-500 drop-shadow-sm">
-                      {budget.toLocaleString("vi-VN")}₫
-                    </span>
-                    {autoBuilding && (
-                      <div className="flex items-center gap-1 mt-1 text-purple-400 animate-pulse">
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span className="text-[10px] uppercase tracking-wider font-bold">Đang tối ưu...</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="font-medium italic opacity-80">{(budgetRange.max / 1000000).toFixed(0)}Tr₫</span>
+                  <span className="font-semibold">
+                    {(DEFAULT_BUDGET_RANGE.min / 1000000).toFixed(0)}Tr₫
+                  </span>
+                  <span className="font-semibold">
+                    {(DEFAULT_BUDGET_RANGE.max / 1000000).toFixed(0)}Tr₫
+                  </span>
+                </div>
+                <div className="text-center mt-2">
+                  <span
+                    className={`inline-block text-2xl font-black tabular-nums tracking-tight ${isDark ? "text-white drop-shadow-sm" : "text-gray-950"}`}
+                  >
+                    {budget.toLocaleString("vi-VN")}₫
+                  </span>
                 </div>
               </label>
               <div className="flex gap-3">

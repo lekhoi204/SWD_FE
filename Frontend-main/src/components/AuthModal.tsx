@@ -7,8 +7,15 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 
 export function AuthModal() {
-  const { authModal, closeModal, openLogin, openRegister, login, register } =
-    useAuth();
+  const {
+    authModal,
+    closeModal,
+    openLogin,
+    openRegister,
+    login,
+    loginWithGoogle,
+    register,
+  } = useAuth();
   const { isDark } = useTheme();
 
   if (!authModal) return null;
@@ -172,6 +179,7 @@ export function AuthModal() {
             <LoginForm
               isDark={isDark}
               onLogin={login}
+              onGoogleLogin={loginWithGoogle}
               onSwitch={openRegister}
             />
           ) : (
@@ -242,10 +250,12 @@ function useFocusHandlers(isDark: boolean) {
 function LoginForm({
   isDark,
   onLogin,
+  onGoogleLogin,
   onSwitch,
 }: {
   isDark: boolean;
   onLogin: (email: string, password: string) => Promise<boolean>;
+  onGoogleLogin: () => Promise<boolean>;
   onSwitch: () => void;
 }) {
   const navigate = useNavigate();
@@ -253,6 +263,7 @@ function LoginForm({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const inputStyle = getInputStyle(isDark);
   const focus = useFocusHandlers(isDark);
 
@@ -279,6 +290,26 @@ function LoginForm({
         }
       } catch (_) {
         // Fallback to home if something goes wrong
+        navigate("/");
+      }
+    }
+  };
+
+  const handleGoogleClick = async () => {
+    setGoogleLoading(true);
+    const ok = await onGoogleLogin();
+    setGoogleLoading(false);
+    if (ok) toast.success("Đăng nhập thành công!");
+    if (ok) {
+      try {
+        const raw = localStorage.getItem("user");
+        const u = raw ? JSON.parse(raw) : null;
+        if (u && u.role) {
+          if (u.role === "admin") navigate("/admin");
+          else if (u.role === "staff") navigate("/staff");
+          else if (u.role === "manager") navigate("/manager");
+        }
+      } catch (_) {
         navigate("/");
       }
     }
@@ -413,6 +444,8 @@ function LoginForm({
       {/* Google */}
       <button
         type="button"
+        onClick={handleGoogleClick}
+        disabled={loading || googleLoading}
         style={{
           width: "100%",
           padding: "12px",
@@ -424,7 +457,8 @@ function LoginForm({
           color: isDark ? "#fff" : "#374151",
           fontSize: "14px",
           fontWeight: 600,
-          cursor: "pointer",
+          cursor: loading || googleLoading ? "not-allowed" : "pointer",
+          opacity: loading || googleLoading ? 0.6 : 1,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -450,7 +484,7 @@ function LoginForm({
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
           />
         </svg>
-        Đăng nhập với Google
+        {googleLoading ? "Đang kết nối Google..." : "Đăng nhập với Google"}
       </button>
 
       {/* Switch */}

@@ -68,3 +68,20 @@ export async function getMeApi(): Promise<User> {
   const res = await apiClient<{ message: string; user: User }>("/auth/me");
   return res.user;
 }
+
+type GoogleLoginRequest = {
+  email: string;
+};
+
+export async function googleLoginApi(data: GoogleLoginRequest): Promise<User> {
+  clearToken();
+  const res = await apiClient<{ message?: string; token?: string; user: User }>(
+    "/auth/google-login",
+    {
+      method: "POST",
+      body: data,
+    },
+  );
+  if (res.token) setToken(res.token);
+  return res.user;
+}

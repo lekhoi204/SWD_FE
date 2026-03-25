@@ -58,7 +58,7 @@ const CATEGORY_MAP: Record<string, ProductCategory> = {
   cooler: "cooler",
   cooling: "cooler",
   "tản nhiệt cpu": "cooler",
-  "quạt tản nhiệt": "cooler",
+  "quạt tản nhiệt": "fan",
   "hệ thống tản nhiệt": "cooler",
   "tản nhiệt": "cooler",
   monitor: "monitor",
@@ -118,6 +118,17 @@ export async function getProductsByCategoryIdApi(
   const res = await apiClient<BackendProductsResponse>(
     `/products/category/${categoryId}`,
   );
+  return res.data.map(mapBackendProduct);
+}
+
+/** GET /products/search — partial, case-insensitive theo tên (query: `name`) */
+export async function searchProductsApi(name: string): Promise<Product[]> {
+  const q = name.trim();
+  if (!q) return [];
+  const res = await apiClient<BackendProductsResponse>("/products/search", {
+    params: { name: q },
+  });
+  if (!res?.data || !Array.isArray(res.data)) return [];
   return res.data.map(mapBackendProduct);
 }
 
