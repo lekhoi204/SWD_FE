@@ -21,6 +21,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   mouse: "Chuột máy tính",
   laptop: "Laptop",
   pc: "PC Đồng bộ",
+  fan: "Quạt tản nhiệt",
 };
 
 export const PC_BUILDER_CATEGORIES: ProductCategory[] = [
@@ -32,6 +33,7 @@ export const PC_BUILDER_CATEGORIES: ProductCategory[] = [
   "psu",
   "case",
   "cooler",
+  "fan",
 ];
 
 export const PC_BUILDER_LABELS: Record<ProductCategory, string> = {
@@ -49,4 +51,5 @@ export const PC_BUILDER_LABELS: Record<ProductCategory, string> = {
   keyboard: "Bàn phím",
   mouse: "Chuột",
   cooler: "Tản nhiệt CPU",
+  fan: "Quạt tản nhiệt",
 };

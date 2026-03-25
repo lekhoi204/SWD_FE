@@ -66,13 +66,13 @@ interface Message {
 
 const CATEGORY_ICONS: Record<string, any> = {
   cpu: Cpu, gpu: Monitor, ram: Layers, storage: HardDrive,
-  psu: Zap, case: Box, cooler: Wind, mainboard: Layout, motherboard: Layout,
+  psu: Zap, case: Box, cooler: Wind, mainboard: Layout, motherboard: Layout, fan: Wind,
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   cpu: "CPU", gpu: "GPU", ram: "RAM", storage: "Ổ cứng",
   psu: "Nguồn", case: "Vỏ case", cooler: "Tản nhiệt",
-  mainboard: "Mainboard", motherboard: "Mainboard",
+  mainboard: "Mainboard", motherboard: "Mainboard", fan: "Quạt tản nhiệt",
 };
 
 const isMock = (data: any) =>

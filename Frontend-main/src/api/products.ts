@@ -58,7 +58,7 @@ const CATEGORY_MAP: Record<string, ProductCategory> = {
   cooler: "cooler",
   cooling: "cooler",
   "tản nhiệt cpu": "cooler",
-  "quạt tản nhiệt": "cooler",
+  "quạt tản nhiệt": "fan",
   "hệ thống tản nhiệt": "cooler",
   "tản nhiệt": "cooler",
   monitor: "monitor",
