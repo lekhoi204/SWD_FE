@@ -343,7 +343,7 @@ export function MainLayout() {
                                 } hover:scale-105 active:scale-95`}
                               >
                                 <Users className="w-4 h-4 text-blue-500 group-hover:text-blue-400 transition-colors flex-shrink-0" />
-                                <span>Trang Nhân viên</span>
+                                <span>Trang Kĩ Thuật</span>
                               </button>
                             </>
                           )}

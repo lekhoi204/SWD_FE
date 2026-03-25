@@ -39,7 +39,7 @@ type UserRequest = {
   budget: number;
   purpose: string;
   note: string;
-  buildItems: { category: string; name: string; price: number }[];
+  buildItems: { category: string; name: string; price: number; quantity?: number }[];
   status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'rejected';
   rejectReason?: string;
   staffBuild?: { category: string; name: string; price: number }[];
@@ -246,7 +246,10 @@ function UserBuildDetail({
 type BuildComponent = {
   category: (typeof PC_BUILDER_CATEGORIES)[number];
   product: Product | null;
+  quantity: number;
 };
+
+const QTY_CATEGORIES = ["ram", "fan", "storage"] as const;
 
 // Default budget range
 const DEFAULT_BUDGET_RANGE = { min: 10000000, max: 200000000, suggested: 30000000 };
@@ -261,7 +264,7 @@ export function PCBuilderPage() {
   const [productsLoading, setProductsLoading] = useState(true);
   const [budget, setBudget] = useState(30000000);
   const [buildComponents, setBuildComponents] = useState<BuildComponent[]>(
-    PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null }))
+    PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null, quantity: 1 }))
   );
   const [activeTab, setActiveTab] = useState<'build' | 'requests'>('build');
   const [showRequestModal, setShowRequestModal] = useState(false);
@@ -395,6 +398,7 @@ export function PCBuilderPage() {
         category: c.category,
         name: c.product!.name,
         price: c.product!.price,
+        quantity: c.quantity,
       }));
 
     try {
@@ -451,7 +455,7 @@ export function PCBuilderPage() {
     const buildName = String(value || "");
     const items = buildComponents
       .filter((c) => c.product)
-      .map((c) => ({ product_id: Number(c.product!.id), quantity: 1 }));
+      .map((c) => ({ product_id: Number(c.product!.id), quantity: c.quantity }));
 
     if (items.length === 0) {
       toast.error("Vui lòng chọn ít nhất một linh kiện để lưu");
@@ -539,11 +543,11 @@ export function PCBuilderPage() {
 
         let product = null;
         if (item) {
-          const pid = Number(item.product_id || item.productId || item.id);
+          const pid = Number(item.product_id || it.productId || item.id);
           const found = allProducts.find((p) => Number(p.id) === pid);
           product = found ?? null;
         }
-        return { category, product };
+        return { category, product, quantity: item?.quantity ?? 1 };
       });
 
       setBuildComponents(newComponents);
@@ -557,7 +561,7 @@ export function PCBuilderPage() {
     }
   };
 
-  const totalPrice = buildComponents.reduce((sum, comp) => sum + (comp.product?.price ?? 0), 0);
+  const totalPrice = buildComponents.reduce((sum, comp) => sum + (comp.product?.price ?? 0) * comp.quantity, 0);
   const remainingBudget = budget - totalPrice;
 
   const selectProduct = (category: string, product: Product) => {
@@ -565,7 +569,12 @@ export function PCBuilderPage() {
   };
 
   const removeProduct = (category: string) => {
-    setBuildComponents((prev) => prev.map((comp) => comp.category === category ? { ...comp, product: null } : comp));
+    setBuildComponents((prev) => prev.map((comp) => comp.category === category ? { ...comp, product: null, quantity: 1 } : comp));
+  };
+
+  const changeQuantity = (category: string, qty: number) => {
+    if (qty < 1) return;
+    setBuildComponents((prev) => prev.map((comp) => comp.category === category ? { ...comp, quantity: qty } : comp));
   };
 
   /** Chuẩn hoá tên để ghép sản phẩm AI với kho */
@@ -651,7 +660,7 @@ export function PCBuilderPage() {
 
     setBuildComponents(newComponents);
 
-    const newTotal = newComponents.reduce((sum, c) => sum + (c.product?.price ?? 0), 0);
+    const newTotal = newComponents.reduce((sum, c) => sum + (c.product?.price ?? 0) * c.quantity, 0);
     if (newTotal > 0) {
       setBudget(newTotal);
     }
@@ -669,7 +678,7 @@ export function PCBuilderPage() {
   };
 
   const resetBuild = () => {
-    setBuildComponents((prev) => prev.map((comp) => ({ ...comp, product: null })));
+    setBuildComponents((prev) => prev.map((comp) => ({ ...comp, product: null, quantity: 1 })));
     setBudget(DEFAULT_BUDGET_RANGE.min);
     toast.info('Đã xóa cấu hình build');
   };
@@ -704,9 +713,9 @@ export function PCBuilderPage() {
   const addBuildToCart = () => {
     const selected = buildComponents
       .filter((c): c is BuildComponent & { product: Product } => c.product !== null)
-      .map((c) => c.product);
+      .map((c) => ({ product: c.product, quantity: c.quantity }));
     if (selected.length === 0) { toast.error('Vui lòng chọn ít nhất một linh kiện'); return; }
-    selected.forEach((p) => addToCart(p, 1));
+    selected.forEach(({ product, quantity }) => addToCart(product, quantity));
     toast.success(`Đã thêm ${selected.length} linh kiện vào giỏ hàng!`);
   };
 
@@ -731,15 +740,15 @@ export function PCBuilderPage() {
     return;
   };
 
-  const handleBuyConfirm = async (value: string | any) => {
+    const handleBuyConfirm = async (value: string | any) => {
     if (!isLoggedIn || !user) return;
     const buildName = String(value || `Custom Build ${Date.now()}`);
     const selectedItems = buildComponents
       .filter((c) => c.product)
-      .map((c) => ({ category: c.category, product: c.product! }));
+      .map((c) => ({ category: c.category, product: c.product!, quantity: c.quantity }));
     const items = selectedItems.map((s) => ({
       product_id: Number(s.product.id),
-      quantity: 1,
+      quantity: s.quantity,
     }));
 
     try {
@@ -948,6 +957,9 @@ export function PCBuilderPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate text-black">
                           {PC_BUILDER_LABELS[comp.category]}
+                          {(QTY_CATEGORIES as readonly string[]).includes(comp.category) && comp.quantity > 1 && (
+                            <span className="ml-1 text-purple-600 font-bold">x{comp.quantity}</span>
+                          )}
                         </p>
                         <p className="text-xs truncate text-gray-700">
                           {comp.product!.name}
@@ -1215,6 +1227,30 @@ export function PCBuilderPage() {
                                 </p>
                               )}
                             </div>
+                            {(QTY_CATEGORIES as readonly string[]).includes(comp.category) && (
+                              <div className="flex items-center gap-3 mt-3">
+                                <span className={`text-sm font-semibold ${isDark ? "text-gray-400" : "text-gray-600"}`}>Số lượng:</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); changeQuantity(comp.category, comp.quantity - 1); }}
+                                  className={`w-9 h-9 rounded-lg border font-bold text-lg flex items-center justify-center transition-colors ${isDark ? "border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20" : "border-purple-400 bg-purple-100 text-purple-600 hover:bg-purple-200"} ${comp.quantity <= 1 ? "opacity-40 cursor-not-allowed" : ""}`}
+                                  disabled={comp.quantity <= 1}
+                                >
+                                  −
+                                </button>
+                                <span className="font-bold text-xl text-white w-10 text-center">{comp.quantity}</span>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); changeQuantity(comp.category, comp.quantity + 1); }}
+                                  className={`w-9 h-9 rounded-lg border font-bold text-lg flex items-center justify-center transition-colors ${isDark ? "border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20" : "border-purple-400 bg-purple-100 text-purple-600 hover:bg-purple-200"}`}
+                                >
+                                  +
+                                </button>
+                                {comp.quantity > 1 && (
+                                  <span className={`text-sm font-semibold ml-1 ${isDark ? "text-purple-400" : "text-purple-600"}`}>
+                                    = {(comp.product.price * comp.quantity).toLocaleString("vi-VN")}₫
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1271,6 +1307,24 @@ export function PCBuilderPage() {
                               >
                                 {p.price.toLocaleString("vi-VN")}₫
                               </p>
+                              {(QTY_CATEGORIES as readonly string[]).includes(comp.category) && comp.product?.id === p.id && (
+                                <div className="flex items-center justify-center gap-2 mt-2 p-2 rounded-lg bg-purple-500/10 border border-purple-500/20" onClick={(e) => e.stopPropagation()}>
+                                  <button
+                                    onClick={() => changeQuantity(comp.category, comp.quantity - 1)}
+                                    className={`w-7 h-7 rounded-lg border font-bold text-base flex items-center justify-center transition-colors ${isDark ? "border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20" : "border-purple-400 bg-purple-100 text-purple-600 hover:bg-purple-200"} ${comp.quantity <= 1 ? "opacity-40 cursor-not-allowed" : ""}`}
+                                    disabled={comp.quantity <= 1}
+                                  >
+                                    −
+                                  </button>
+                                  <span className="font-bold text-base text-white w-8 text-center">{comp.quantity}</span>
+                                  <button
+                                    onClick={() => changeQuantity(comp.category, comp.quantity + 1)}
+                                    className={`w-7 h-7 rounded-lg border font-bold text-base flex items-center justify-center transition-colors ${isDark ? "border-purple-500/30 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20" : "border-purple-400 bg-purple-100 text-purple-600 hover:bg-purple-200"}`}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </button>
                         ))}
@@ -1506,7 +1560,7 @@ export function PCBuilderPage() {
                       }}
                     >
                       <span style={{ color: isDark ? "#d1d5db" : "#374151" }}>
-                        {b.name}
+                        {b.name}{(b as any).quantity > 1 ? ` (x${(b as any).quantity})` : ""}
                       </span>
                       <span style={{ color: "#10b981", fontWeight: 600 }}>
                         {b.price.toLocaleString("vi-VN")}₫

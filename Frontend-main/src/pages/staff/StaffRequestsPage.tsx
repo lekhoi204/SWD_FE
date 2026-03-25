@@ -10,7 +10,9 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 type RequestStatus = 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled' | 'rejected';
 
-type BuildItem = { category: string; productId?: string; productName?: string; name?: string; price: number };
+type BuildItem = { category: string; productId?: string; productName?: string; name?: string; price: number; quantity?: number };
+
+const QTY_CATEGORIES = ["ram", "fan", "storage"] as const;
 
 type BuildRequest = {
   id: string;
@@ -283,7 +285,7 @@ export function StaffRequestsPage() {
     const product = products.find((p) => String(p.id) === String(productId));
     if (!product) return;
     const existing = staffBuild.findIndex((b) => b.category === category);
-    const item: BuildItem = { category, productId: String(product.id), productName: product.name, price: product.price };
+    const item: BuildItem = { category, productId: String(product.id), productName: product.name, price: product.price, quantity: 1 };
     if (existing >= 0) {
       setStaffBuild((prev) => prev.map((b, i) => i === existing ? item : b));
     } else {
@@ -293,6 +295,13 @@ export function StaffRequestsPage() {
 
   const removeFromBuild = (category: string) => {
     setStaffBuild((prev) => prev.filter((b) => b.category !== category));
+  };
+
+  const changeQuantity = (category: string, qty: number) => {
+    if (qty < 1) return;
+    setStaffBuild((prev) =>
+      prev.map((b) => b.category === category ? { ...b, quantity: qty } : b)
+    );
   };
 
   const handleSendBuild = async () => {
@@ -312,7 +321,7 @@ export function StaffRequestsPage() {
       const buildName = `Build tư vấn #${selectedReq.id}`;
       const items = staffBuild
         .filter((b) => b.productId)
-        .map((b) => ({ product_id: Number(b.productId), quantity: 1 }));
+        .map((b) => ({ product_id: Number(b.productId), quantity: b.quantity ?? 1 }));
 
       if (items.length === 0) {
         toast.error('Build chưa có productId hợp lệ');
@@ -327,7 +336,7 @@ export function StaffRequestsPage() {
         created?.user_build_id || created?.id || created?.build_id,
       );
 
-      const totalPrice = staffBuild.reduce((s, b) => s + (Number(b.price) || 0), 0);
+      const totalPrice = staffBuild.reduce((s, b) => s + (Number(b.price) || 0) * (b.quantity ?? 1), 0);
 
       await StaffBuildRequestsApi.submitBuildForRequest(selectedReq.id, {
         user_build_id: userBuildId || undefined,
@@ -354,7 +363,7 @@ export function StaffRequestsPage() {
     }
   };
 
-  const buildTotal = staffBuild.reduce((s, b) => s + b.price, 0);
+  const buildTotal = staffBuild.reduce((s, b) => s + (b.price || 0) * (b.quantity ?? 1), 0);
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '12px 14px', borderRadius: '10px',
@@ -558,7 +567,9 @@ export function StaffRequestsPage() {
               <div style={{ marginBottom: '20px' }}>
                 <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cấu hình staff đã build</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {selectedReq.staffBuild.map((b) => (
+                  {selectedReq.staffBuild.map((b) => {
+                    const qty = b.quantity ?? 1;
+                    return (
                     <div key={b.category} style={{
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       padding: '10px 14px', borderRadius: '10px', background: 'rgba(139,92,246,0.06)',
@@ -566,13 +577,14 @@ export function StaffRequestsPage() {
                     }}>
                       <div>
                         <span style={{ fontSize: '11px', color: '#6b7280', textTransform: 'uppercase' }}>{PC_BUILDER_LABELS[b.category as keyof typeof PC_BUILDER_LABELS] ?? b.category}</span>
-                        <p style={{ fontSize: '14px', color: '#d1d5db', margin: '2px 0 0' }}>{b.productName || b.name}</p>
+                        <p style={{ fontSize: '14px', color: '#d1d5db', margin: '2px 0 0' }}>{b.productName || b.name}{qty > 1 ? ` (x${qty})` : ''}</p>
                       </div>
                       <span style={{ fontSize: '14px', color: '#a78bfa', fontWeight: 600 }}>{formatPrice(b.price)}</span>
                     </div>
-                  ))}
+                    );
+                  })}
                   <div style={{ textAlign: 'right', paddingTop: '8px', fontSize: '16px', fontWeight: 700, color: '#a78bfa' }}>
-                    Tổng: {formatPrice(selectedReq.staffBuild.reduce((s, b) => s + b.price, 0))}
+                    Tổng: {formatPrice(selectedReq.staffBuild.reduce((s, b) => s + (b.price || 0) * (b.quantity ?? 1), 0))}
                   </div>
                 </div>
               </div>
@@ -586,6 +598,8 @@ export function StaffRequestsPage() {
                 {PC_BUILDER_CATEGORIES.map((cat) => {
                   const selected = staffBuild.find((b) => b.category === cat);
                   const available = products.filter((p) => p.category === cat);
+                  const allowQty = (QTY_CATEGORIES as readonly string[]).includes(cat);
+                  const qty = selected?.quantity ?? 1;
                   return (
                     <div key={cat} style={{ marginBottom: '10px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
@@ -597,8 +611,29 @@ export function StaffRequestsPage() {
                             flex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             padding: '8px 12px', borderRadius: '8px', background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.15)',
                           }}>
-                            <span style={{ fontSize: '13px', color: '#d1d5db' }}>{selected.productName || selected.name}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ flex: 1 }}>
+                              <span style={{ fontSize: '13px', color: '#d1d5db' }}>{selected.productName || selected.name}</span>
+                              {allowQty && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
+                                  <span style={{ fontSize: '11px', color: '#9ca3af' }}>SL:</span>
+                                  <button
+                                    onClick={() => changeQuantity(cat, qty - 1)}
+                                    style={{ width: 22, height: 22, borderRadius: 5, border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', color: '#34d399', cursor: qty <= 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, lineHeight: 1, opacity: qty <= 1 ? 0.4 : 1 }}
+                                  >−</button>
+                                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff', minWidth: 18, textAlign: 'center' }}>{qty}</span>
+                                  <button
+                                    onClick={() => changeQuantity(cat, qty + 1)}
+                                    style={{ width: 22, height: 22, borderRadius: 5, border: '1px solid rgba(16,185,129,0.3)', background: 'rgba(16,185,129,0.1)', color: '#34d399', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, lineHeight: 1 }}
+                                  >+</button>
+                                  {qty > 1 && (
+                                    <span style={{ fontSize: '11px', color: '#34d399', marginLeft: 2 }}>
+                                      = {formatPrice(selected.price * qty)}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                               <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 600 }}>{formatPrice(selected.price)}</span>
                               <button onClick={() => removeFromBuild(cat)} style={{
                                 background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', display: 'flex', padding: '2px',
