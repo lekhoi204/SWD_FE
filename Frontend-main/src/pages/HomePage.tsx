@@ -67,7 +67,8 @@ export function HomePage() {
       k !== "all" &&
       k !== "psu" &&
       // Trùng label với `cooler`; slug này chỉ dùng cho URL/API
-      k !== "tan-nhiet-cpu",
+      k !== "tan-nhiet-cpu" &&
+      k !== "fan",
   );
 
   return (

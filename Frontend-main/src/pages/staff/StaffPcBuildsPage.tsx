@@ -25,7 +25,10 @@ const formatPrice = (p: number) => p.toLocaleString("vi-VN") + "đ";
 type BuildComponent = {
   category: typeof PC_BUILDER_CATEGORIES[number];
   product: Product | null;
+  quantity: number;
 };
+
+const QUANTITY_CATEGORIES = ["ram", "fan", "storage"] as const;
 
 type PcBuildDetailItem = {
   product_id?: number;
@@ -47,7 +50,7 @@ export function StaffPcBuildsPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [buildComponents, setBuildComponents] = useState<BuildComponent[]>(
-    PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null }))
+    PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null, quantity: 1 }))
   );
   const [searchCat, setSearchCat] = useState<Record<string, string>>({});
   const [selectedCategory, setSelectedCategory] = useState<string>("cpu");
@@ -89,7 +92,7 @@ export function StaffPcBuildsPage() {
     try {
       setMode("create");
       setBuildComponents(
-        PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null }))
+        PC_BUILDER_CATEGORIES.map((category) => ({ category, product: null, quantity: 1 }))
       );
       setForm({
         build_name: "",
@@ -106,6 +109,16 @@ export function StaffPcBuildsPage() {
       ]);
       setAllProducts(prods);
       setCategories(cats);
+
+      // Auto-select "PC bộ" as default category
+      const pcBo = cats.find((c) =>
+        c.name.toLowerCase().replace(/\s+/g, " ").includes("pc bộ") ||
+        c.name.toLowerCase().replace(/\s+/g, " ").includes("pc đồng bộ") ||
+        c.name.toLowerCase().replace(/\s+/g, " ").includes("pc bo")
+      );
+      if (pcBo) {
+        setForm((prev) => ({ ...prev, category_id: String(pcBo.category_id) }));
+      }
     } catch (err) {
       console.error(err);
       toast.error("Không thể tải sản phẩm. Vui lòng thử lại.");
@@ -166,18 +179,31 @@ export function StaffPcBuildsPage() {
 
   const selectProduct = (category: string, product: Product) => {
     setBuildComponents((prev) =>
-      prev.map((c) => (c.category === category ? { ...c, product } : c))
+      prev.map((c) =>
+        c.category === category ? { ...c, product } : c
+      )
     );
   };
 
   const removeProduct = (category: string) => {
     setBuildComponents((prev) =>
-      prev.map((c) => (c.category === category ? { ...c, product: null } : c))
+      prev.map((c) =>
+        c.category === category ? { ...c, product: null, quantity: 1 } : c
+      )
+    );
+  };
+
+  const changeQuantity = (category: string, quantity: number) => {
+    if (quantity < 1) return;
+    setBuildComponents((prev) =>
+      prev.map((c) =>
+        c.category === category ? { ...c, quantity } : c
+      )
     );
   };
 
   const calculateTotal = () => {
-    return buildComponents.reduce((sum, c) => sum + (c.product?.price || 0), 0);
+    return buildComponents.reduce((sum, c) => sum + (c.product?.price || 0) * c.quantity, 0);
   };
 
   const handlePublish = async () => {
@@ -185,7 +211,7 @@ export function StaffPcBuildsPage() {
       .filter((c) => c.product)
       .map((c) => ({
         product_id: Number(c.product!.id),
-        quantity: 1, // Default to 1 per component
+        quantity: c.quantity,
       }));
 
     if (items.length === 0) {
@@ -272,6 +298,7 @@ export function StaffPcBuildsPage() {
             {buildComponents.map((c) => {
               const label = PC_BUILDER_LABELS[c.category as keyof typeof PC_BUILDER_LABELS];
               const isSelected = selectedCategory === c.category;
+              const allowQty = (QUANTITY_CATEGORIES as readonly string[]).includes(c.category);
               return (
                 <div
                   key={c.category}
@@ -322,6 +349,34 @@ export function StaffPcBuildsPage() {
                         <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#10b981", fontWeight: 700 }}>
                           {formatPrice(c.product.price)}
                         </p>
+                        {allowQty && (
+                          <div
+                            style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "6px" }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span style={{ fontSize: "12px", color: "#9ca3af" }}>SL:</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); changeQuantity(c.category, c.quantity - 1); }}
+                              style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid rgba(139,92,246,0.3)", background: "rgba(139,92,246,0.1)", color: "#a855f7", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, lineHeight: 1 }}
+                            >
+                              −
+                            </button>
+                            <span style={{ fontSize: "14px", fontWeight: 700, color: "#fff", minWidth: 20, textAlign: "center" }}>
+                              {c.quantity}
+                            </span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); changeQuantity(c.category, c.quantity + 1); }}
+                              style={{ width: 24, height: 24, borderRadius: 6, border: "1px solid rgba(139,92,246,0.3)", background: "rgba(139,92,246,0.1)", color: "#a855f7", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, lineHeight: 1 }}
+                            >
+                              +
+                            </button>
+                            {c.quantity > 1 && (
+                              <span style={{ fontSize: "12px", color: "#a855f7", marginLeft: 2 }}>
+                                = {formatPrice(c.product.price * c.quantity)}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -352,11 +407,13 @@ export function StaffPcBuildsPage() {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "16px", maxHeight: "400px", overflowY: "auto", paddingRight: "8px" }}>
                 {availableProducts.map((p) => {
-                  const isSelected = buildComponents.find(c => c.category === selectedCategory)?.product?.id === p.id;
+                  const comp = buildComponents.find(c => c.category === selectedCategory);
+                  const isSelected = comp?.product?.id === p.id;
+                  const allowQty = (QUANTITY_CATEGORIES as readonly string[]).includes(selectedCategory);
+                  const qty = isSelected ? (comp?.quantity ?? 1) : 1;
                   return (
                     <div
                       key={p.id}
-                      onClick={() => selectProduct(selectedCategory, p)}
                       style={{
                         padding: "12px",
                         borderRadius: "12px",
@@ -365,6 +422,7 @@ export function StaffPcBuildsPage() {
                         background: "rgba(255,255,255,0.03)",
                         display: "flex", flexDirection: "column"
                       }}
+                      onClick={() => selectProduct(selectedCategory, p)}
                     >
                       <div className="w-full aspect-[4/3] bg-white rounded-lg flex items-center justify-center p-2 mb-3">
                         <img src={p.image} alt="" className="w-full h-full object-contain max-w-full max-h-full" />
@@ -384,6 +442,25 @@ export function StaffPcBuildsPage() {
                         {p.name}
                       </p>
                       <p style={{ margin: "auto 0 0", fontSize: "14px", color: "#10b981", fontWeight: 700 }}>{formatPrice(p.price)}</p>
+                      {allowQty && isSelected && (
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "10px", padding: "8px", borderRadius: "8px", background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.2)" }}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); changeQuantity(selectedCategory, qty - 1); }}
+                            style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid rgba(168,85,247,0.4)", background: "rgba(168,85,247,0.15)", color: "#a855f7", cursor: qty <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, lineHeight: 1, opacity: qty <= 1 ? 0.4 : 1 }}
+                          >
+                            −
+                          </button>
+                          <span style={{ fontSize: "16px", fontWeight: 800, color: "#fff", minWidth: 24, textAlign: "center" }}>
+                            {qty}
+                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); changeQuantity(selectedCategory, qty + 1); }}
+                            style={{ width: 28, height: 28, borderRadius: 6, border: "1px solid rgba(168,85,247,0.4)", background: "rgba(168,85,247,0.15)", color: "#a855f7", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 700, lineHeight: 1 }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
