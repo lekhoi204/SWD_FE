@@ -31,6 +31,7 @@ export const PC_BUILDER_CATEGORIES: ProductCategory[] = [
   "storage",
   "psu",
   "case",
+  "cooler",
 ];
 
 export const PC_BUILDER_LABELS: Record<ProductCategory, string> = {
@@ -47,4 +48,5 @@ export const PC_BUILDER_LABELS: Record<ProductCategory, string> = {
   monitor: "Màn hình",
   keyboard: "Bàn phím",
   mouse: "Chuột",
+  cooler: "Tản nhiệt CPU",
 };

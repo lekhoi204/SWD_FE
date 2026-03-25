@@ -94,7 +94,18 @@ export async function getBudgetAllocationApi(): Promise<any> {
   const res = await apiClient<{ success: boolean; data: any }>(
     "/compatibility/budget-allocation",
   );
-  return res.data;
+  return res;
+}
+
+export async function getBudgetRangeApi(): Promise<{
+  success: boolean;
+  data: { min: number; max: number; suggested: number; currency: string };
+}> {
+  const res = await apiClient<{
+    success: boolean;
+    data: { min: number; max: number; suggested: number; currency: string };
+  }>("/compatibility/budget-range");
+  return res;
 }
 
 export default {
@@ -107,4 +118,5 @@ export default {
   getRuleInfoApi,
   getBuildExamplesApi,
   getBudgetAllocationApi,
+  getBudgetRangeApi,
 };
