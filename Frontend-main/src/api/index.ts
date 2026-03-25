@@ -1,5 +1,11 @@
 export { apiClient, ApiError, setToken, clearToken } from "./client";
-export { loginApi, registerApi, logoutApi, getMeApi } from "./auth";
+export {
+  loginApi,
+  registerApi,
+  logoutApi,
+  getMeApi,
+  googleLoginApi,
+} from "./auth";
 export {
   getProductsApi,
   getProductByIdApi,

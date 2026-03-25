@@ -121,6 +121,17 @@ export async function getProductsByCategoryIdApi(
   return res.data.map(mapBackendProduct);
 }
 
+/** GET /products/search — partial, case-insensitive theo tên (query: `name`) */
+export async function searchProductsApi(name: string): Promise<Product[]> {
+  const q = name.trim();
+  if (!q) return [];
+  const res = await apiClient<BackendProductsResponse>("/products/search", {
+    params: { name: q },
+  });
+  if (!res?.data || !Array.isArray(res.data)) return [];
+  return res.data.map(mapBackendProduct);
+}
+
 export async function getProductByIdApi(id: string): Promise<Product> {
   const res = await apiClient<BackendProductResponse>(`/products/${id}`);
   return mapBackendProduct(res.data);

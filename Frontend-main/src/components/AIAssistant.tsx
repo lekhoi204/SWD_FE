@@ -313,8 +313,8 @@ export function AIAssistant({ onApplyBuild }: AIAssistantProps) {
                 Tôi có thể giúp bạn xây dựng cấu hình PC hoàn hảo. Hãy mô tả nhu cầu của bạn.
               </p>
             </div>
-            {/* Giống layout grid 3 cột như cũ; nút ôm sát chữ (w-fit), không kéo giãn full width */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full max-w-lg mx-auto justify-items-center">
+            {/* Flex + inline-flex: khung ôm chữ; px-5 = 20px hai bên chữ */}
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-center justify-center gap-3 w-full max-w-lg mx-auto">
               {[
                 "Gaming 25 triệu",
                 "Văn phòng 10 triệu",
@@ -324,7 +324,7 @@ export function AIAssistant({ onApplyBuild }: AIAssistantProps) {
                   key={s}
                   type="button"
                   onClick={() => { setQuery(s); textareaRef.current?.focus(); }}
-                  className={`rounded-lg border text-[11px] font-bold transition-all hover:scale-[1.02] w-fit max-w-full px-2.5 py-1.5 ${
+                  className={`inline-flex items-center justify-center rounded-lg border text-[11px] font-bold transition-all hover:scale-[1.02] max-w-full px-8 py-2 ${
                     isDark
                       ? "border-white/20 text-white hover:bg-white/10"
                       : "border-pink-300 hover:bg-pink-50"

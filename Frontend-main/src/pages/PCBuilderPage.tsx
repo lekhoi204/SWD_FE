@@ -248,9 +248,8 @@ type BuildComponent = {
   product: Product | null;
 };
 
-const ALLOCATIONS: Record<string, number> = {
-  cpu: 0.25, gpu: 0.35, motherboard: 0.15, ram: 0.1, storage: 0.08, psu: 0.05, case: 0.02,
-};
+// Default budget range
+const DEFAULT_BUDGET_RANGE = { min: 10000000, max: 200000000, suggested: 30000000 };
 
 export function PCBuilderPage() {
   const { isDark } = useTheme();
@@ -638,20 +637,24 @@ export function PCBuilderPage() {
 
     const missing: string[] = [];
     let matched = 0;
+    const newComponents = buildComponents.map((bc) => {
+      const row = getAiComponentRow(components, bc.category);
+      if (!row) return bc;
+      const product = matchProductInCategory(bc.category, row, allProducts);
+      if (product) {
+        matched++;
+        return { ...bc, product };
+      }
+      missing.push(String(row.product_name ?? row.name ?? bc.category));
+      return { ...bc, product: null };
+    });
 
-    setBuildComponents((prev) =>
-      prev.map((bc) => {
-        const row = getAiComponentRow(components, bc.category);
-        if (!row) return bc;
-        const product = matchProductInCategory(bc.category, row, allProducts);
-        if (product) {
-          matched++;
-          return { ...bc, product };
-        }
-        missing.push(String(row.product_name ?? row.name ?? bc.category));
-        return { ...bc, product: null };
-      }),
-    );
+    setBuildComponents(newComponents);
+
+    const newTotal = newComponents.reduce((sum, c) => sum + (c.product?.price ?? 0), 0);
+    if (newTotal > 0) {
+      setBudget(newTotal);
+    }
 
     if (matched > 0) {
       toast.success(`Đã áp dụng ${matched} linh kiện từ AI xuống build PC`);
@@ -665,41 +668,9 @@ export function PCBuilderPage() {
     }
   };
 
-  const autoBuild = () => {
-    if (allProducts.length === 0) {
-      toast.error("Chưa có dữ liệu sản phẩm");
-      return;
-    }
-    const newBuild: BuildComponent[] = [];
-    let remaining = budget;
-    for (const comp of buildComponents) {
-      const categoryBudget = budget * (ALLOCATIONS[comp.category] ?? 0);
-      const available = allProducts
-        .filter(
-          (p) =>
-            p.category === comp.category && p.price <= remaining && p.stock > 0,
-        )
-        .sort(
-          (a, b) =>
-            Math.abs(a.price - categoryBudget) -
-            Math.abs(b.price - categoryBudget),
-        );
-      const selected = available[0] ?? null;
-      if (selected) remaining -= selected.price;
-      newBuild.push({ category: comp.category, product: selected });
-    }
-    setBuildComponents(newBuild);
-    const selectedCount = newBuild.filter((c) => c.product).length;
-    if (selectedCount === 0)
-      toast.error("Không tìm được linh kiện phù hợp ngân sách");
-    else
-      toast.success(
-        `Đã tự động chọn ${selectedCount} linh kiện theo ngân sách!`,
-      );
-  };
-
   const resetBuild = () => {
     setBuildComponents((prev) => prev.map((comp) => ({ ...comp, product: null })));
+    setBudget(DEFAULT_BUDGET_RANGE.min);
     toast.info('Đã xóa cấu hình build');
   };
 
@@ -913,35 +884,35 @@ export function PCBuilderPage() {
                 </span>
                 <input
                   type="range"
-                  min={10000000}
-                  max={100000000}
-                  step={1000000}
+                  min={DEFAULT_BUDGET_RANGE.min}
+                  max={DEFAULT_BUDGET_RANGE.max}
+                  step={500000}
                   value={budget}
                   onChange={(e) => setBudget(Number(e.target.value))}
-                  className="w-full"
+                  className="w-full h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
                 />
                 <div
-                  className={`flex justify-between text-xs mt-1 ${isDark ? "text-gray-400" : "text-gray-600"}`}
+                  className={`flex justify-between text-xs mt-2 ${isDark ? "text-gray-400" : "text-gray-600"}`}
                 >
-                  <span>10.000.000₫</span>
-                  <span className="text-lg font-bold text-purple-400">
+                  <span className="font-semibold">
+                    {(DEFAULT_BUDGET_RANGE.min / 1000000).toFixed(0)}Tr₫
+                  </span>
+                  <span className="font-semibold">
+                    {(DEFAULT_BUDGET_RANGE.max / 1000000).toFixed(0)}Tr₫
+                  </span>
+                </div>
+                <div className="text-center mt-2">
+                  <span
+                    className={`inline-block text-2xl font-black tabular-nums tracking-tight ${isDark ? "text-white drop-shadow-sm" : "text-gray-950"}`}
+                  >
                     {budget.toLocaleString("vi-VN")}₫
                   </span>
-                  <span>100.000.000₫</span>
                 </div>
               </label>
               <div className="flex gap-3">
                 <button
-                  onClick={autoBuild}
-                  disabled={productsLoading}
-                  className="flex-1 py-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform flex items-center justify-center gap-2 text-white disabled:opacity-50 disabled:hover:scale-100 text-sm"
-                >
-                  <RefreshCw className="w-4 h-4" />{" "}
-                  {productsLoading ? "Tải..." : "Tự động"}
-                </button>
-                <button
                   onClick={resetBuild}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-colors text-sm ${isDark ? "bg-white/10 hover:bg-white/20 border border-white/20 text-white" : "bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-700"}`}
+                  className={`flex-1 py-2 rounded-lg font-semibold transition-colors text-sm ${isDark ? "bg-white/10 hover:bg-white/20 border border-white/20 text-white" : "bg-purple-100 hover:bg-purple-200 border border-purple-300 text-purple-700"}`}
                 >
                   Xóa
                 </button>

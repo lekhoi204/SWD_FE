@@ -1,9 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
-import { Filter, Grid, List } from "lucide-react";
+import { Filter, Grid, List, Search } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import { useCart } from "@/context/CartContext";
-import { getProductsApi, getProductsByCategoryIdApi } from "@/api/products";
+import {
+  getProductsApi,
+  getProductsByCategoryIdApi,
+  searchProductsApi,
+} from "@/api/products";
 import { getCategoriesApi } from "@/api/categories";
 import { CATEGORY_LABELS } from "@/constants/categories";
 import { Breadcrumb } from "@/components/Breadcrumb";
@@ -28,6 +32,15 @@ export function ProductListPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      setDebouncedSearch(searchInput.trim());
+    }, 350);
+    return () => window.clearTimeout(t);
+  }, [searchInput]);
 
   // Helper để normalize category name cho URL slug
   const getCategorySlug = (name: string) => {
@@ -46,6 +59,25 @@ export function ProductListPage() {
       try {
         setLoading(true);
         setIsCategoryFetch(false);
+
+        if (debouncedSearch) {
+          try {
+            const categoryList = await getCategoriesApi();
+            if (mounted) setCategories(categoryList);
+            const data = await searchProductsApi(debouncedSearch);
+            if (mounted) {
+              setProducts(data);
+              setIsCategoryFetch(true);
+            }
+          } catch (err) {
+            console.error("Product search failed:", err);
+            if (mounted) setProducts([]);
+          } finally {
+            if (mounted) setLoading(false);
+          }
+          return;
+        }
+
         // If category is provided (not 'all'), try to resolve backend category id
         if (category !== "all") {
           try {
@@ -141,11 +173,11 @@ export function ProductListPage() {
     return () => {
       mounted = false;
     };
-  }, [category]);
+  }, [category, debouncedSearch]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [category]);
+  }, [category, debouncedSearch]);
 
   const filteredProducts = useMemo(() => {
     // If products are fetched from category API, no need to filter by category again
@@ -211,10 +243,37 @@ export function ProductListPage() {
             : "bg-white/80 border border-purple-300 shadow-lg"
         }`}
       >
-        <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-          <div className="flex items-center gap-4 w-full md:w-auto flex-wrap">
+        <div className="flex flex-col md:flex-row gap-4 items-start justify-between">
+          <div className="flex w-full min-w-0 flex-col gap-4 md:flex-1">
+            <div
+              className={`flex w-full min-h-[48px] items-center gap-3 rounded-xl border px-4 ${
+                isDark
+                  ? "bg-slate-900/50 border-purple-500/30 focus-within:border-purple-400 text-white"
+                  : "bg-white border-purple-300 focus-within:border-purple-500 text-gray-900"
+              }`}
+            >
+              <Search
+                aria-hidden
+                className={`shrink-0 size-5 pointer-events-none ${
+                  isDark ? "text-purple-400" : "text-purple-600"
+                }`}
+              />
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                placeholder="Tìm theo tên sản phẩm..."
+                autoComplete="off"
+                className={`min-h-[44px] min-w-0 flex-1 border-0 bg-transparent py-3 text-base leading-normal focus:outline-none focus:ring-0 ${
+                  isDark
+                    ? "text-white placeholder:text-gray-500"
+                    : "text-gray-900 placeholder:text-gray-400"
+                }`}
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
             <Filter
-              className={`w-5 h-5 ${isDark ? "text-purple-400" : "text-purple-600"}`}
+              className={`w-5 h-5 shrink-0 ${isDark ? "text-purple-400" : "text-purple-600"}`}
             />
             <select
               value={category}
@@ -300,8 +359,9 @@ export function ProductListPage() {
                 Tên A-Z
               </option>
             </select>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 md:min-h-[48px]">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-2 rounded-lg transition-colors ${

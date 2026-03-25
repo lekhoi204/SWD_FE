@@ -7,7 +7,8 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "@/types";
-import { loginApi, registerApi, getMeApi } from "@/api/auth";
+import { loginApi, registerApi, getMeApi, googleLoginApi } from "@/api/auth";
+import { getGoogleEmailFromOAuth } from "@/lib/googleOAuth";
 import { clearToken, setOnUnauthorized } from "@/api/client";
 import { toast } from "sonner";
 
@@ -18,6 +19,7 @@ type AuthContextValue = {
   isLoggedIn: boolean;
   updateUser: (user: User) => void;
   login: (email: string, password: string) => Promise<boolean>;
+  loginWithGoogle: () => Promise<boolean>;
   register: (
     name: string,
     email: string,
@@ -89,6 +91,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const loginWithGoogle = useCallback(async (): Promise<boolean> => {
+    try {
+      const email = await getGoogleEmailFromOAuth();
+      const userData = await googleLoginApi({ email });
+      setUser(userData);
+      saveUser(userData);
+      setAuthModal(null);
+      return true;
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "Đăng nhập Google thất bại";
+      toast.error(message);
+      return false;
+    }
+  }, []);
+
   const register = useCallback(
     async (
       name: string,
@@ -145,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoggedIn: !!user,
         updateUser,
         login,
+        loginWithGoogle,
         register,
         logout,
         authModal,
