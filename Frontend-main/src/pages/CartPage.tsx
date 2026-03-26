@@ -7,34 +7,34 @@ import { useAuth } from "@/context/AuthContext";
 
 export function CartPage() {
   const { isDark } = useTheme();
-  const { user } = useAuth();
+  const { user, openLogin, openRegister } = useAuth();
   const { cart, updateQuantity, removeFromCart, total, isLoading } = useCart();
 
   const subtotal = total;
   const shipping = subtotal > 0 ? (subtotal > 10000000 ? 0 : 200000) : 0;
   const finalTotal = subtotal + shipping;
 
-  if (!user) {
-    return (
-      <div className="container mx-auto px-4 py-20">
-        <div className="max-w-md mx-auto text-center">
-          <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 ${isDark ? "bg-purple-500/20" : "bg-purple-100"}`}>
-            <ShoppingBag className={`w-16 h-16 ${isDark ? "text-purple-400" : "text-purple-600"}`} />
-          </div>
-          <h2 className={`text-2xl font-bold mb-4 ${isDark ? "text-white" : "text-black"}`}>Cần đăng nhập</h2>
-          <p className={`mb-8 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
-            Vui lòng đăng nhập để xem giỏ hàng của bạn
-          </p>
-          <Link
-            to="/products"
-            className="inline-block px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg font-semibold hover:scale-105 transition-transform text-white"
-          >
-            Tiếp tục mua sắm
-          </Link>
-        </div>
+  const guestWarning = (
+    <div className={`mb-6 p-4 rounded-lg ${isDark ? "bg-purple-900/40" : "bg-purple-100"}`}>
+      <p className={isDark ? "text-purple-200" : "text-gray-700"}>
+        Bạn chưa đăng nhập, giỏ hàng hiện là tạm thời. Sau khi đăng nhập/đăng ký, sản phẩm sẽ tự động đồng bộ vào giỏ hàng của bạn.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          onClick={openLogin}
+          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg text-white text-sm font-semibold"
+        >
+          Đăng nhập
+        </button>
+        <button
+          onClick={openRegister}
+          className="px-4 py-2 border border-purple-300 rounded-lg text-sm font-semibold"
+        >
+          Đăng ký
+        </button>
       </div>
-    );
-  }
+    </div>
+  );
 
   if (isLoading && cart.length === 0) {
     return (
@@ -51,6 +51,7 @@ export function CartPage() {
     return (
       <div className="container mx-auto px-4 py-20">
         <div className="max-w-md mx-auto text-center">
+          {!user && guestWarning}
           <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto mb-6 ${isDark ? "bg-purple-500/20" : "bg-purple-100"}`}>
             <ShoppingBag className={`w-16 h-16 ${isDark ? "text-purple-400" : "text-purple-600"}`} />
           </div>
@@ -72,6 +73,7 @@ export function CartPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <Breadcrumb items={[{ label: "Giỏ hàng" }]} />
+      {!user && guestWarning}
       <h1 className={`text-3xl md:text-4xl font-bold mb-8 ${isDark ? "bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent" : "text-black"}`}>
         Giỏ hàng của bạn
       </h1>
