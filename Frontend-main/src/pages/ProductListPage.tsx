@@ -112,10 +112,11 @@ export function ProductListPage() {
             let matched = byLengthDesc.find((c) => {
               if (!c || !c.name) return false;
               const nameNorm = normalize(String(c.name));
+              // Exact slug match — skip reverse substring check to prevent
+              // "tan-nhiet-cpu" / "tannhietcpu" from matching "cpu"
               if (nameNorm === targetNorm || nameNorm === keyNorm) return true;
               if (targetNorm.length >= 3 && nameNorm.includes(targetNorm))
                 return true;
-              if (keyNorm.length >= 3 && nameNorm.includes(keyNorm)) return true;
               if (
                 targetNorm.length >= MIN_REVERSE_SUBSTRING_LEN &&
                 targetNorm.includes(nameNorm)
