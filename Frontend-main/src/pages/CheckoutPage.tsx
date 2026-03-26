@@ -27,7 +27,8 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const { isDark } = useTheme();
   const { cart, loadCart, total } = useCart();
-  const { user } = useAuth();
+  const auth = useAuth();
+  const { user } = auth;
   const [step, setStep] = useState<"info" | "payment" | "qr" | "success">(
     "info",
   );
@@ -202,6 +203,20 @@ export function CheckoutPage() {
         <p className={`text-lg mb-6 ${isDark ? "text-gray-400" : "text-gray-600"}`}>
           Vui lòng đăng nhập để thanh toán.
         </p>
+        <div className="flex justify-center gap-3">
+          <button
+            onClick={auth.openLogin}
+            className="px-6 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold"
+          >
+            Đăng nhập
+          </button>
+          <button
+            onClick={auth.openRegister}
+            className="px-6 py-3 rounded-lg border border-purple-300 text-purple-700 font-semibold"
+          >
+            Đăng ký
+          </button>
+        </div>
       </div>
     );
   }

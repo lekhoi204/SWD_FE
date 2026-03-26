@@ -35,6 +35,40 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
+const GUEST_CART_KEY = "guestCart";
+
+function loadGuestCartFromStorage(): CartItemWithId[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(GUEST_CART_KEY);
+    if (!raw) return [];
+    const items: CartItem[] = JSON.parse(raw) ?? [];
+    if (!Array.isArray(items)) return [];
+
+    return items.map((item, idx) => ({
+      ...item,
+      cart_item_id: Date.now() + idx,
+    }));
+  } catch (e) {
+    console.warn("Failed to parse guest cart from localStorage", e);
+    return [];
+  }
+}
+
+function saveGuestCartToStorage(items: CartItemWithId[]) {
+  if (typeof window === "undefined") return;
+  const simplified = items.map((item) => ({
+    product: item.product,
+    quantity: item.quantity,
+  }));
+  localStorage.setItem(GUEST_CART_KEY, JSON.stringify(simplified));
+}
+
+function clearGuestCartFromStorage() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(GUEST_CART_KEY);
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItemWithId[]>([]);
@@ -80,20 +114,88 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [user?.user_id]);
 
+  const mergeGuestCartToServer = useCallback(async () => {
+    if (!user?.user_id) return;
+
+    const guestItems = loadGuestCartFromStorage();
+    if (guestItems.length === 0) return;
+
+    for (const item of guestItems) {
+      try {
+        await addToCartApi(String(user.user_id), {
+          product_id: parseInt(item.product.id),
+          quantity: item.quantity,
+        });
+      } catch (err) {
+        console.warn("Failed to merge guest item to server cart", item, err);
+      }
+    }
+
+    clearGuestCartFromStorage();
+  }, [user?.user_id]);
+
+  const loadGuestCart = useCallback(() => {
+    const items = loadGuestCartFromStorage();
+    setCart(items);
+
+    const summary = {
+      itemCount: items.length,
+      totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
+      totalPrice: items.reduce((sum, item) => sum + item.product.price * item.quantity, 0),
+    };
+    setCartSummary(summary);
+  }, []);
+
   // Load cart on mount and when user changes
   useEffect(() => {
-    if (user?.user_id) {
-      loadCart();
-    } else {
-      setCart([]);
-      setCartSummary(null);
-    }
-  }, [user?.user_id, loadCart]);
+    const initialize = async () => {
+      if (user?.user_id) {
+        await mergeGuestCartToServer();
+        await loadCart();
+      } else {
+        loadGuestCart();
+      }
+    };
+
+    void initialize();
+  }, [user?.user_id, loadCart, mergeGuestCartToServer, loadGuestCart]);
 
   const addToCart = useCallback(
     async (product: Product, quantity = 1, isBuild = false) => {
       if (!user?.user_id) {
-        toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng');
+        // Guest flow: keep temporary cart locally.
+        setCart((prev) => {
+          const existing = prev.find((item) => item.product.id === product.id);
+          let nextItems: CartItemWithId[];
+
+          if (existing) {
+            nextItems = prev.map((item) =>
+              item.product.id === product.id
+                ? { ...item, quantity: item.quantity + quantity }
+                : item,
+            );
+          } else {
+            nextItems = [
+              ...prev,
+              {
+                cart_item_id: Date.now(),
+                product,
+                quantity,
+              },
+            ];
+          }
+
+          saveGuestCartToStorage(nextItems);
+          const summary = {
+            itemCount: nextItems.length,
+            totalQuantity: nextItems.reduce((sum, i) => sum + i.quantity, 0),
+            totalPrice: nextItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+          };
+          setCartSummary(summary);
+
+          return nextItems;
+        });
+
         return;
       }
 
@@ -120,7 +222,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const updateQuantity = useCallback(
     async (cartItemId: number, quantity: number) => {
-      if (!user?.user_id) return;
+      if (!user?.user_id) {
+        setCart((prev) => {
+          let nextItems = prev;
+          if (quantity <= 0) {
+            nextItems = prev.filter((item) => item.cart_item_id !== cartItemId);
+          } else {
+            nextItems = prev.map((item) =>
+              item.cart_item_id === cartItemId ? { ...item, quantity } : item,
+            );
+          }
+          saveGuestCartToStorage(nextItems);
+          setCartSummary({
+            itemCount: nextItems.length,
+            totalQuantity: nextItems.reduce((sum, i) => sum + i.quantity, 0),
+            totalPrice: nextItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+          });
+          return nextItems;
+        });
+        return;
+      }
 
       try {
         setIsLoading(true);
@@ -145,7 +266,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeFromCart = useCallback(
     async (cartItemId: number) => {
-      if (!user?.user_id) return;
+      if (!user?.user_id) {
+        setCart((prev) => {
+          const nextItems = prev.filter((item) => item.cart_item_id !== cartItemId);
+          saveGuestCartToStorage(nextItems);
+          setCartSummary({
+            itemCount: nextItems.length,
+            totalQuantity: nextItems.reduce((sum, i) => sum + i.quantity, 0),
+            totalPrice: nextItems.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
+          });
+          return nextItems;
+        });
+        toast.success('Đã xóa khỏi giỏ hàng (tạm)');
+        return;
+      }
 
       try {
         setIsLoading(true);
@@ -165,7 +299,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 
   const clearCartFn = useCallback(async () => {
-    if (!user?.user_id) return;
+    if (!user?.user_id) {
+      setCart([]);
+      setCartSummary(null);
+      clearGuestCartFromStorage();
+      toast.success('Đã xóa toàn bộ giỏ hàng tạm');
+      return;
+    }
 
     try {
       setIsLoading(true);
