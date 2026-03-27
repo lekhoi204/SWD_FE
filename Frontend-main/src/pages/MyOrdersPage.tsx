@@ -590,166 +590,81 @@ export function MyOrdersPage() {
 
       {/* Details Modal like Manager Page */}
       {viewOrder && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={() => setViewOrder(null)}
-          />
-          <div className="relative z-10 w-full max-w-2xl bg-gradient-to-br from-purple-950 to-slate-950 border border-purple-500/30 rounded-3xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl shadow-black/50 scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-transparent">
-            <div className="flex justify-between items-start gap-4 mb-6 md:mb-8 sticky top-0 bg-gradient-to-br from-purple-950 to-slate-950 -mx-6 md:-mx-8 px-6 md:px-8 py-4 md:py-6 border-b border-purple-500/10">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-purple-500/15 rounded-lg text-purple-300">
-                  <Package size={20} />
-                </div>
-                <h2 className="text-xl md:text-2xl font-black text-white">
-                  Chi tiết đơn hàng #{viewOrder.order_id}
-                </h2>
-              </div>
-              <button
-                onClick={() => setViewOrder(null)}
-                className="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-400 cursor-pointer flex p-2 rounded-lg flex-shrink-0 transition-colors"
-              >
-                <X size={20} />
-              </button>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }} onClick={() => setViewOrder(null)} />
+          <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '560px', background: 'linear-gradient(160deg, #1a1508, #0f0e17)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: '20px', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', margin: 0 }}>Chi tiết đơn hàng #{viewOrder.order_id}</h2>
+              <button onClick={() => setViewOrder(null)} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', display: 'flex' }}><X style={{ width: 20, height: 20 }} /></button>
             </div>
 
-            {/* Status & Total */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <div className="p-4 md:p-5 rounded-2xl bg-white/2 border border-white/5 hover:border-white/10 transition-all">
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
-                  Trạng thái
-                </p>
-                {(() => {
-                  const ns = normalizeStatus(viewOrder.status);
-                  const s = STATUS_STYLE[ns] || STATUS_STYLE["Chờ xử lý"];
-                  const I = s.icon;
-                  return (
-                    <span
-                      className="flex items-center gap-2 font-bold text-base"
-                      style={{ color: s.color }}
-                    >
-                      <I size={16} /> {ns}
-                    </span>
-                  );
-                })()}
-              </div>
-              <div className="p-4 md:p-5 rounded-2xl bg-white/2 border border-white/5 hover:border-white/10 transition-all">
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">
-                  Tổng thanh toán
-                </p>
-                <span className="text-emerald-400 font-black text-lg md:text-xl">
-                  {formatPrice(viewOrder.total_amount)}
-                </span>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+              <InfoBlock label="Trạng thái">
+                {(() => { const s = STATUS_STYLE[viewOrder.status] || STATUS_STYLE['Chờ xử lý']; const I = s.icon; return <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: s.color, fontWeight: 600 }}><I style={{ width: 14, height: 14 }} /> {viewOrder.status}</span>; })()}
+              </InfoBlock>
+              <InfoBlock label="Tổng tiền"><span style={{ color: '#10b981', fontWeight: 700, fontSize: '18px' }}>{formatPrice(viewOrder.total_amount)}</span></InfoBlock>
+              <InfoBlock label="Khách hàng"><span style={{ color: '#d1d5db' }}>{viewOrder.user_name || `User #${viewOrder.user_id}`}</span></InfoBlock>
+              <InfoBlock label="Email"><span style={{ color: '#d1d5db' }}>{viewOrder.user_email || '—'}</span></InfoBlock>
+              <InfoBlock label="Điện thoại"><span style={{ color: '#d1d5db' }}>{viewOrder.user_phone || '—'}</span></InfoBlock>
+              <InfoBlock label="Ngày đặt"><span style={{ color: '#d1d5db' }}>{formatDate(viewOrder.order_date)}</span></InfoBlock>
+              <InfoBlock label="Thanh toán"><span style={{ color: '#d1d5db' }}>{viewOrder.payment_method ? (PAYMENT_STYLE[viewOrder.payment_method]?.label || viewOrder.payment_method) : (PAYMENT_STYLE[viewOrder.payment_type]?.label || viewOrder.payment_type)}</span></InfoBlock>
+              <InfoBlock label="Mã khuyến mãi"><span style={{ color: viewOrder.promotion_code ? '#a855f7' : '#6b7280' }}>{viewOrder.promotion_code || 'Không có'}</span></InfoBlock>
             </div>
 
-            {/* Order Info Grid */}
-            <div className="mb-6 p-5 rounded-3xl bg-white/2 border border-white/5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1 font-bold uppercase tracking-wider">
-                    Ngày đặt
-                  </p>
-                  <p className="text-gray-300 text-sm font-medium">
-                    {formatDate(viewOrder.order_date)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1 font-bold uppercase tracking-wider">
-                    Phương thức thanh toán
-                  </p>
-                  <p className="text-gray-300 text-sm font-medium">
-                    {PAYMENT_STYLE[
-                      viewOrder.payment_method || viewOrder.payment_type
-                    ]?.label ||
-                      viewOrder.payment_method ||
-                      viewOrder.payment_type ||
-                      "COD"}
-                  </p>
-                </div>
+            {viewOrder.shipping_address && (
+              <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(139,92,246,0.1)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 6px' }}>Địa chỉ giao hàng</p>
+                <p style={{ fontSize: '14px', color: '#d1d5db', margin: 0, lineHeight: 1.5 }}>{viewOrder.shipping_address}</p>
               </div>
-              <div>
-                <p className="text-xs text-gray-500 mb-2 font-bold uppercase tracking-wider">
-                  Địa chỉ giao hàng
-                </p>
-                <p className="text-gray-300 text-sm leading-relaxed flex gap-2">
-                  <MapPin
-                    size={14}
-                    className="flex-shrink-0 mt-0.5 text-purple-400"
-                  />{" "}
-                  {viewOrder.shipping_address || "N/A"}
-                </p>
-              </div>
-            </div>
+            )}
 
-            {/* Products */}
-            <div className="mb-8">
-              <p className="text-xs font-bold text-gray-500 uppercase mb-3 tracking-wider">
-                Sản phẩm ({viewOrder.order_items?.length || 0})
-              </p>
-              <div className="flex flex-col gap-3">
-                {viewOrder.order_items?.map((item, idx) => {
-                  const product = productsMap[item.product_id || 0];
-                  return (
-                    <div
-                      key={idx}
-                      className="flex gap-4 p-3 md:p-4 bg-white/3 border border-white/5 rounded-2xl hover:bg-white/5 hover:border-purple-500/20 transition-all"
-                    >
-                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-lg bg-white p-1 flex-shrink-0 flex items-center justify-center">
-                        {product?.image ? (
-                          <img
-                            src={product.image}
-                            alt=""
-                            className="w-full h-full object-contain"
-                          />
+            {viewOrder.order_items && viewOrder.order_items.length > 0 && (
+              <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(139,92,246,0.1)' }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#6b7280', margin: '0 0 12px' }}>Sản phẩm đã đặt</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {viewOrder.order_items.map((item, idx) => {
+                    const product = productsMap[item.product_id || 0];
+                    return (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+                        {product ? (
+                          <img src={product.image} alt={product.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', background: '#fff' }} />
                         ) : (
-                          <Package size={24} className="text-gray-300" />
+                          <div style={{ width: '48px', height: '48px', borderRadius: '6px', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '12px', textAlign: 'center' }}>
+                            {item.user_build_id ? 'PC Build' : 'No Img'}
+                          </div>
                         )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm md:text-base font-bold text-white truncate">
-                          {product?.name || `Sản phẩm #${item.product_id}`}
-                        </p>
-                        <div className="flex justify-between items-center gap-2 mt-2 flex-wrap">
-                          <span className="text-xs md:text-sm text-gray-400 font-semibold">
-                            SL:{" "}
-                            <span className="text-gray-300">
-                              {item.quantity}
-                            </span>
-                          </span>
-                          <span className="text-sm md:text-base font-bold text-emerald-400">
-                            {formatPrice(item.price)}
-                          </span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ fontSize: '14px', fontWeight: 500, color: '#fff', margin: '0 0 4px' }}>
+                            {product ? product.name : (item.user_build_id ? `PC Build (ID: #${item.user_build_id})` : `Sản phẩm #${item.product_id}`)}
+                          </p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '12px', color: '#9ca3af' }}>SL: <strong style={{ color: '#fff' }}>{item.quantity}</strong></span>
+                            <span style={{ fontSize: '14px', fontWeight: 600, color: '#10b981' }}>{formatPrice(item.price)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-3 sticky bottom-0 -mx-6 md:-mx-8 px-6 md:px-8 py-4 md:py-6 bg-gradient-to-t from-slate-950 to-transparent border-t border-purple-500/10">
-              <button
-                onClick={() => setViewOrder(null)}
-                className="flex-1 py-3 rounded-xl text-sm md:text-base font-bold border border-white/10 bg-transparent hover:bg-white/5 text-gray-400 hover:text-gray-300 cursor-pointer transition-all"
-              >
-                Đóng
-              </button>
-              <button
-                onClick={() => handleReorder(viewOrder)}
-                className="flex-1 py-3 rounded-xl text-sm md:text-base font-bold border-none bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white cursor-pointer flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-purple-500/50"
-              >
-                <RefreshCcw
-                  size={18}
-                  className={isReordering ? "animate-spin" : ""}
-                />
-                Mua lại
-              </button>
+            <div style={{ display: 'flex', gap: '12px', position: 'sticky', bottom: 0, left: 0, right: 0, padding: '14px 0 0', background: 'linear-gradient(180deg, rgba(15,15,17,0.05), rgba(15,15,17,1))', borderTop: '1px solid rgba(139,92,246,0.2)' }}>
+              <button onClick={() => setViewOrder(null)} style={{ flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, border: '1px solid rgba(139,92,246,0.2)', background: 'transparent', color: '#9ca3af', cursor: 'pointer' }}>Đóng</button>
+              <button onClick={() => handleReorder(viewOrder)} style={{ flex: 1, padding: '12px', borderRadius: '12px', fontSize: '14px', fontWeight: 600, border: 'none', background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff', cursor: 'pointer' }}>Mua lại</button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function InfoBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', margin: '0 0 4px' }}>{label}</p>
+      <div style={{ fontSize: '14px' }}>{children}</div>
     </div>
   );
 }

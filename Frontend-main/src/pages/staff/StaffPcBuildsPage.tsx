@@ -256,7 +256,7 @@ export function StaffPcBuildsPage() {
     borderRadius: "10px",
     border: "1px solid rgba(139,92,246,0.2)",
     background: "rgba(255,255,255,0.05)",
-    color: isDark ? "#fff" : "#111",
+    color: "#fff",
     fontSize: "14px",
     outline: "none",
   };
